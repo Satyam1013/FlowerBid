@@ -43,7 +43,7 @@
 
 ## Tech Stack
 
-- **Backend:** NestJS
+- **Backend:** Express JS, Node
 - **Database:** MongoDB
 - **Real-Time Communication:** WebSockets (Socket.IO)
 - **Authentication:** JWT (JSON Web Tokens)
