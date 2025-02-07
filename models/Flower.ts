@@ -1,0 +1,24 @@
+// models/Flower.ts
+import { Schema, model, Document, Types } from "mongoose";
+
+export interface FlowerDocument extends Document {
+  name: string;
+  description?: string;
+  startingPrice: number;
+  bidEndTime: Date;
+  isAvailable: boolean;
+  winningBid?: Types.ObjectId;
+}
+
+const flowerSchema = new Schema<FlowerDocument>({
+  name: { type: String, required: true },
+  description: { type: String },
+  startingPrice: { type: Number, required: true },
+  isAvailable: { type: Boolean, required: true },
+  bidEndTime: { type: Date, required: true },
+  winningBid: { type: Schema.Types.ObjectId, ref: "Bid" },
+});
+
+const Flower = model<FlowerDocument>("flower", flowerSchema);
+
+export default Flower;
