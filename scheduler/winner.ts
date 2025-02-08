@@ -3,7 +3,7 @@ import { Types } from "mongoose";
 import Flower from "../models/Flower";
 import Bid from "../models/Bid";
 
-export const startWinnerScheduler = (): void => {
+export const startWinnerScheduler = () => {
   // Runs every minute
   schedule.schedule("* * * * *", async () => {
     try {
