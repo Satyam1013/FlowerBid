@@ -1,4 +1,3 @@
-// models/Flower.ts
 import { Schema, model, Document, Types } from "mongoose";
 
 export interface FlowerDocument extends Document {

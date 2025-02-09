@@ -1,5 +1,3 @@
-// src/routes/flower.route.ts
-
 import { Router } from "express";
 import {
   getAvailableFlowers,

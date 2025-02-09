@@ -6,7 +6,7 @@ export const addFlower = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<void> => {
+) => {
   try {
     const { name, description, startingPrice, bidDuration } = req.body;
     const bidEndTime = new Date(Date.now() + bidDuration * 1000);
