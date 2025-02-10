@@ -6,6 +6,7 @@ export interface FlowerDocument extends Document {
   startingPrice: number;
   bidEndTime: Date;
   winningBid?: Types.ObjectId;
+  isFavorite: boolean;
 }
 
 const flowerSchema = new Schema<FlowerDocument>({
@@ -14,6 +15,7 @@ const flowerSchema = new Schema<FlowerDocument>({
   startingPrice: { type: Number, required: true },
   bidEndTime: { type: Date, required: true },
   winningBid: { type: Schema.Types.ObjectId, ref: "Bid" },
+  isFavorite: { type: Boolean }
 });
 
 const Flower = model<FlowerDocument>("flower", flowerSchema);

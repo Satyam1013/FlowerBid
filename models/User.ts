@@ -6,6 +6,7 @@ export interface UserDocument extends Document {
   email: string;
   password: string;
   role: "user" | "admin";
+  balance: number;
 }
 
 const userSchema = new Schema<UserDocument>({
@@ -13,6 +14,7 @@ const userSchema = new Schema<UserDocument>({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, enum: ["user", "admin"], default: "user" },
+  balance: { type: Number, default: 0 }
 });
 
 const User = model<UserDocument>("user", userSchema);

@@ -9,7 +9,7 @@ interface AuthenticatedRequest extends Request {
 export const getAvailableFlowers = async (
   req: Request,
   res: Response
-): Promise<void> => {
+)  => {
   try {
     const currentTime = new Date();
     const flowers = await Flower.find({ bidEndTime: { $gt: currentTime } });
@@ -22,9 +22,9 @@ export const getAvailableFlowers = async (
 
 /**
  * Place a bid for a specific flower.
- * Enforces that a user can only bid once for a flower every 90 seconds.
+ * (Note: Rate limiting is enforced separately by middleware.)
  */
-export const placeBid = async (req: Request, res: Response): Promise<void> => {
+export const placeBid = async (req: Request, res: Response)  => {
   try {
     // Type-cast req to AuthenticatedRequest to access req.user
     const authReq = req as AuthenticatedRequest;
@@ -52,20 +52,6 @@ export const placeBid = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Enforce a 90-second bid rate limit per user for this flower.
-    const ninetySecondsAgo = new Date(Date.now() - 90 * 1000);
-    const recentBid = await Bid.findOne({
-      user: userId,
-      flower: flowerId,
-      bidTime: { $gt: ninetySecondsAgo },
-    });
-    if (recentBid) {
-      res.status(400).json({
-        error: "You can only bid once every 90 seconds for this flower.",
-      });
-      return;
-    }
-
     // Create and save the bid
     const bid = new Bid({
       user: userId,
@@ -78,6 +64,19 @@ export const placeBid = async (req: Request, res: Response): Promise<void> => {
     res.json({ message: "Bid placed successfully.", bid });
   } catch (error) {
     console.error("Error placing bid:", error);
+    res.status(500).json({ error: "Server error." });
+  }
+};
+
+export const favoriteFlowers = async (
+  req: Request,
+  res: Response
+)  => {
+  try {
+    const favorites = await Flower.find({ isFavorite: true });
+    res.json(favorites);
+  } catch (error) {
+    console.error("Error fetching favorite flowers:", error);
     res.status(500).json({ error: "Server error." });
   }
 };

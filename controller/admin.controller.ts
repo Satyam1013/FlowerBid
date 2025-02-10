@@ -8,14 +8,15 @@ export const addFlower = async (
   next: NextFunction
 ) => {
   try {
-    const { name, description, startingPrice, bidDuration } = req.body;
-    const bidEndTime = new Date(Date.now() + bidDuration * 1000);
+    const { name, description, startingPrice, bidEndTime, isFavorite } = req.body;
+
 
     const flower = new Flower({
       name,
       description,
       startingPrice,
       bidEndTime,
+      isFavorite 
     });
 
     await flower.save();
@@ -30,7 +31,7 @@ export const updateFlower = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<void> => {
+) => {
   try {
     const { id } = req.params;
     const updatedData = req.body;
@@ -56,7 +57,7 @@ export const getFlower = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<void> => {
+) => {
   try {
     const { id } = req.params;
 
@@ -76,7 +77,7 @@ export const getAllFlowers = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<void> => {
+) => {
   try {
     const flowers = await Flower.find();
     res.json(flowers);
@@ -90,7 +91,7 @@ export const deleteFlower = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<void> => {
+) => {
   try {
     const { id } = req.params;
 
