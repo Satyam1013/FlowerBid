@@ -1,28 +1,43 @@
 import { Request, Response, NextFunction } from "express";
 import Flower from "../models/Flower";
+import Bid from "../models/Bid";
+const { io } = require("../index");
 
-// Create a new flower
-export const addFlower = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const addFlower = async (req: Request, res: Response) => {
   try {
     const { name, description, startingPrice, bidEndTime, isFavorite } = req.body;
 
-
-    const flower = new Flower({
-      name,
-      description,
-      startingPrice,
-      bidEndTime,
-      isFavorite 
-    });
-
+    const flower = new Flower({ name, description, startingPrice, bidEndTime, isFavorite });
     await flower.save();
+
+    // Schedule winner selection at bidEndTime
+    const timeUntilEnd = new Date(bidEndTime).getTime() - Date.now();
+    setTimeout(async () => {
+      const highestBid = await Bid.findOne({ flower: flower._id })
+        .sort({ amount: -1, bidTime: 1 })
+        .populate("user");
+
+      if (highestBid) {
+        flower.winningBid = highestBid._id;
+        await flower.save();
+
+        // Notify all users about the winner
+        io.emit("bidEnded", {
+          flowerId: flower._id,
+          winner: highestBid.user,
+          amount: highestBid.amount,
+        });
+
+        console.log(
+          `Winner announced for ${flower.name}: User ${highestBid.user} with ₹${highestBid.amount}`
+        );
+      }
+    }, timeUntilEnd);
+
     res.status(201).json({ message: "Flower added successfully.", flower });
   } catch (error) {
-    next(error);
+    console.error(error);
+    res.status(500).json({ error: "Server error." });
   }
 };
 
@@ -103,5 +118,50 @@ export const deleteFlower = async (
     res.json({ message: "Flower deleted successfully." });
   } catch (error) {
     next(error);
+  }
+};
+
+export const determineWinner = async (req: Request, res: Response) => {
+  try {
+    const { flowerId } = req.params;
+
+    // Find the flower
+    const flower = await Flower.findById(flowerId);
+    if (!flower) {
+      return res.status(404).json({ error: "Flower not found." });
+    }
+
+    // Check if the bidding time has ended
+    if (new Date() < flower.bidEndTime) {
+      return res.status(400).json({ error: "Bidding is still ongoing." });
+    }
+
+    // Find the highest bid for this flower
+    const highestBid = await Bid.findOne({ flower: flowerId })
+      .sort({ amount: -1 }) // Sort in descending order
+      .populate("user", "name email"); // Populate user details
+
+    if (!highestBid) {
+      return res
+        .status(200)
+        .json({ message: "No bids were placed for this flower." });
+    }
+
+    // Update the flower document with the winning bid
+    flower.winningBid = highestBid._id;
+    await flower.save();
+
+    return res.json({
+      message: "Winner determined successfully!",
+      flowerId,
+      winner: {
+        user: highestBid.user,
+        amount: highestBid.amount,
+        bidTime: highestBid.bidTime,
+      },
+    });
+  } catch (error) {
+    console.error("Error determining bid winner:", error);
+    res.status(500).json({ error: "Server error." });
   }
 };

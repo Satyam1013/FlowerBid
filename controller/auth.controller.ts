@@ -1,7 +1,27 @@
 import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcrypt";
+import * as yup from "yup";
 import jwt from "jsonwebtoken";
 import User, { UserDocument } from "../models/User";
+
+const userValidationSchema = yup.object({
+  username: yup
+    .string()
+    .min(3, "Username must be at least 3 characters")
+    .required("Username is required"),
+  email: yup
+    .string()
+    .email("Invalid email address")
+    .required("Email is required"),
+  password: yup
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .required("Password is required"),
+  mobile: yup
+    .string()
+    .matches(/^\d{10}$/, "Mobile number must be exactly 10 digits")
+    .required("Mobile number is required"),
+});
 
 export const signup = async (
   req: Request,
@@ -9,7 +29,10 @@ export const signup = async (
   next: NextFunction
 ) => {
   try {
-    const { username, email, password, mobile } = req.body;
+    const validatedData = await userValidationSchema.validate(req.body, {
+      abortEarly: false,
+    });
+    const { username, email, password, mobile } = validatedData;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -21,12 +44,16 @@ export const signup = async (
       username,
       email,
       password: await bcrypt.hash(password, 10),
-      mobile,
+      mobile: parseInt(mobile, 10),
     });
 
     await newUser.save();
     res.status(201).json({ message: "User created successfully." });
   } catch (error) {
+    if (error instanceof yup.ValidationError) {
+      res.status(422).json({ errors: error.errors });
+      return;
+    }
     console.error("Signup error:", error);
     next(error);
   }
@@ -52,9 +79,13 @@ export const login = async (
       return;
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET!, {
-      expiresIn: "1h",
-    });
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET!,
+      {
+        expiresIn: "1h",
+      }
+    );
 
     res.json({ token });
   } catch (error) {

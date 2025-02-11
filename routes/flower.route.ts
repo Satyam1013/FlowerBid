@@ -4,7 +4,6 @@ import {
   placeBid,
   favoriteFlowers,
 } from "../controller/flower.controller";
-import { authenticator } from "../middleware/authenticator";
 import { bidRateLimiter } from "../middleware/rate.limiter";
 
 
