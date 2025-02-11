@@ -30,7 +30,6 @@ connectDB().then(() => {
   });
 });
 
-// Create and attach the Socket.IO instance using require
 const io = new socketIo.Server(server, {
   cors: {
     origin: "*", // Allow all origins; adjust as needed

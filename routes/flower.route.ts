@@ -11,7 +11,6 @@ const flowerRouter: Router = Router();
 
 flowerRouter.get("/", getAvailableFlowers);
 
-// POST /flowers/:flowerId/bid - Place a bid on a specific flower.
 flowerRouter.post("/:flowerId/bid", bidRateLimiter, placeBid);
 
 flowerRouter.post("/favorites", favoriteFlowers);
