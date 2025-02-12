@@ -2,7 +2,6 @@
 import { Request, Response } from "express";
 import User from "../models/User";
 
-// Define an extended Request type if needed
 interface AuthenticatedRequest extends Request {
   user?: { _id: string };
 }

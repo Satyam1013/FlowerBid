@@ -23,7 +23,7 @@ adminRouter.get("/flowers/:id", getFlower);
 adminRouter.get("/flowers", getAllFlowers);
 
 adminRouter.delete("/flowers/:id", deleteFlower);
-// Admin route to determine the winner of a flower bid
+
 adminRouter.post("/declare-winner/:flowerId", determineWinner);
 
 export default adminRouter;

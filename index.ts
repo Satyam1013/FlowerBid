@@ -21,7 +21,6 @@ app.use("/api/admin", adminRouter);
 app.use("/api/flowers", authenticator, flowerRouter);
 app.use("/api/auth", authRouter);
 
-// Create an HTTP server from your Express app
 const server = http.createServer(app);
 
 connectDB().then(() => {
@@ -36,15 +35,12 @@ const io = new socketIo.Server(server, {
   },
 });
 
-// Listen for socket connections
 io.on("connection", (socket: any) => {
   console.log(`User connected: ${socket.id}`);
 
-  // You can add additional socket event listeners here
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);
   });
 });
 
-// Optionally, export the Socket.IO instance for use in other modules (e.g., controllers)
 module.exports.io = io;
