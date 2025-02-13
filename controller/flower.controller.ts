@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import Flower from "../models/Flower";
 import Bid from "../models/Bid";
 
@@ -6,13 +6,12 @@ interface AuthenticatedRequest extends Request {
   user?: { _id: string };
 }
 
-export const getAvailableFlowers = async (
-  req: Request,
-  res: Response
-)  => {
+// Get all available flowers (those whose auction hasn't ended yet)
+export const getAvailableFlowers = async (req: Request, res: Response) => {
   try {
     const currentTime = new Date();
-    const flowers = await Flower.find({ bidEndTime: { $gt: currentTime } });
+    // Use endDateTime to filter flowers that are still open for bidding.
+    const flowers = await Flower.find({ endDateTime: { $gt: currentTime } });
     res.json(flowers);
   } catch (error) {
     console.error("Error fetching flowers:", error);
@@ -20,6 +19,7 @@ export const getAvailableFlowers = async (
   }
 };
 
+// Place a bid for a specific flower
 export const placeBid = async (req: Request, res: Response) => {
   try {
     const authReq = req as AuthenticatedRequest;
@@ -31,34 +31,57 @@ export const placeBid = async (req: Request, res: Response) => {
     const { flowerId } = req.params;
     const { amount } = req.body;
 
-    // Find the flower
+    // Find the specified flower
     const flower = await Flower.findById(flowerId);
     if (!flower) {
       return res.status(404).json({ error: "Flower not found." });
     }
 
-    // Check if bidding time has ended
-    if (new Date() > flower.bidEndTime) {
-      return res.status(400).json({ error: "Bidding time has ended for this flower." });
+    // Check if bidding time has ended using the new endDateTime field
+    if (new Date() > flower.endDateTime) {
+      return res
+        .status(400)
+        .json({ error: "Bidding time has ended for this flower." });
     }
 
-    // Find the last bid for this flower
-    const lastBid = await Bid.findOne({ flower: flowerId }).sort({ bidTime: -1 });
+    // Ensure that the bid amount is higher than the initial bid price
+    if (amount <= flower.initialBidPrice) {
+      return res
+        .status(400)
+        .json({
+          error: `Bid amount must be higher than the initial bid price of ₹${flower.initialBidPrice}.`,
+        });
+    }
+
+    // Find the current highest bid for this flower (if any)
+    const highestBid = await Bid.findOne({ flower: flowerId }).sort({
+      amount: -1,
+    });
+    if (highestBid && amount <= highestBid.amount) {
+      return res
+        .status(400)
+        .json({
+          error: `Bid amount must be higher than the current highest bid of ₹${highestBid.amount}.`,
+        });
+    }
 
     // Check if the user has already bid on this flower within 90 seconds
-    const recentUserBid = await Bid.findOne({ flower: flowerId, user: userId })
-      .sort({ bidTime: -1 });
-
+    const recentUserBid = await Bid.findOne({
+      flower: flowerId,
+      user: userId,
+    }).sort({ bidTime: -1 });
     if (recentUserBid) {
-      const timeDiff = (new Date().getTime() - recentUserBid.bidTime.getTime()) / 1000;
+      const timeDiff =
+        (new Date().getTime() - recentUserBid.bidTime.getTime()) / 1000;
       if (timeDiff < 90) {
-        return res.status(400).json({ error: `You must wait ${90 - Math.floor(timeDiff)} seconds before bidding again.` });
+        return res
+          .status(400)
+          .json({
+            error: `You must wait ${
+              90 - Math.floor(timeDiff)
+            } seconds before bidding again.`,
+          });
       }
-    }
-
-    // If the last bid was made by the same user and no one has outbid them, deny bid
-    if (lastBid && lastBid.user.toString() === userId.toString() && lastBid.amount >= amount) {
-      return res.status(400).json({ error: "You cannot increase your bid unless another user has outbid you." });
     }
 
     // Create and save the new bid
@@ -68,7 +91,6 @@ export const placeBid = async (req: Request, res: Response) => {
       amount,
       bidTime: new Date(),
     });
-
     await bid.save();
 
     res.json({ message: "Bid placed successfully.", bid });
@@ -78,11 +100,8 @@ export const placeBid = async (req: Request, res: Response) => {
   }
 };
 
-
-export const favoriteFlowers = async (
-  req: Request,
-  res: Response
-)  => {
+// Get all favorite flowers
+export const favoriteFlowers = async (req: Request, res: Response) => {
   try {
     const favorites = await Flower.find({ isFavorite: true });
     res.json(favorites);
