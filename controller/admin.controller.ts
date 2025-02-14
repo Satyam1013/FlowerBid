@@ -14,9 +14,7 @@ export const addFlower = async (req: Request, res: Response) => {
       size,
       quantity,
       category,
-      isLive,
-      upcoming,
-      isClosed,
+      status,
       lotNumber,
       initialBidPrice,
       currentBidPrice,
@@ -32,9 +30,7 @@ export const addFlower = async (req: Request, res: Response) => {
       size,
       quantity,
       category,
-      isLive,
-      upcoming,
-      isClosed,
+      status,
       lotNumber,
       initialBidPrice,
       currentBidPrice,
@@ -179,7 +175,8 @@ export const determineWinner = async (req: Request, res: Response) => {
     }
 
     // Check if the bidding time has ended
-    if (new Date() < flower.endDateTime) {
+    const currentTime = new Date();
+    if (flower.status === "live" && currentTime < flower.endDateTime) {
       return res.status(400).json({ error: "Bidding is still ongoing." });
     }
 
@@ -189,13 +186,12 @@ export const determineWinner = async (req: Request, res: Response) => {
       .populate("user", "name email");
 
     if (!highestBid) {
-      return res
-        .status(200)
-        .json({ message: "No bids were placed for this flower." });
+      return res.status(200).json({ message: "No bids were placed for this flower." });
     }
 
-    // Update the flower document with the winning bid
+    // Update the flower document with the winning bid and update status
     flower.winningBid = highestBid._id;
+    flower.status = "closed"; // mark the auction as closed
     await flower.save();
 
     return res.json({

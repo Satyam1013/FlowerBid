@@ -1,4 +1,3 @@
-// models/Bid.ts
 import { Schema, model, Document, Types } from "mongoose";
 
 export interface BidDocument extends Document {

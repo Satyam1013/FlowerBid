@@ -1,20 +1,41 @@
 import { Request, Response, NextFunction } from "express";
 import Flower from "../models/Flower";
 import Bid from "../models/Bid";
+import client from "../redis.client";
+import User from "../models/User";
 
 interface AuthenticatedRequest extends Request {
   user?: { _id: string };
 }
 
 // Get all available flowers (those whose auction hasn't ended yet)
-export const getAvailableFlowers = async (req: Request, res: Response) => {
+export const getLiveFlowers = async (req: Request, res: Response) => {
   try {
     const currentTime = new Date();
-    // Use endDateTime to filter flowers that are still open for bidding.
-    const flowers = await Flower.find({ endDateTime: { $gt: currentTime } });
+    // Live flowers: the auction is currently active, and the endDateTime is in the future.
+    const flowers = await Flower.find({
+      status: "live",
+      endDateTime: { $gt: currentTime },
+    });
     res.json(flowers);
   } catch (error) {
-    console.error("Error fetching flowers:", error);
+    console.error("Error fetching live flowers:", error);
+    res.status(500).json({ error: "Server error." });
+  }
+};
+
+export const getUpcomingFlowers = async (req: Request, res: Response) => {
+  try {
+    const currentTime = new Date();
+    // Upcoming flowers: scheduled to start in the future.
+    // You can adjust conditions, e.g., startDateTime is in the future.
+    const flowers = await Flower.find({
+      status: "upcoming",
+      endDateTime: { $gt: currentTime },
+    });
+    res.json(flowers);
+  } catch (error) {
+    console.error("Error fetching upcoming flowers:", error);
     res.status(500).json({ error: "Server error." });
   }
 };
@@ -30,6 +51,7 @@ export const placeBid = async (req: Request, res: Response) => {
 
     const { flowerId } = req.params;
     const { amount } = req.body;
+    const currentTime = new Date();
 
     // Find the specified flower
     const flower = await Flower.findById(flowerId);
@@ -37,20 +59,18 @@ export const placeBid = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Flower not found." });
     }
 
-    // Check if bidding time has ended using the new endDateTime field
-    if (new Date() > flower.endDateTime) {
+    // Check if bidding time has ended using endDateTime field
+    if (currentTime > flower.endDateTime) {
       return res
         .status(400)
         .json({ error: "Bidding time has ended for this flower." });
     }
 
-    // Ensure that the bid amount is higher than the initial bid price
+    // Ensure that the bid is higher than the initial bid price
     if (amount <= flower.initialBidPrice) {
-      return res
-        .status(400)
-        .json({
-          error: `Bid amount must be higher than the initial bid price of ₹${flower.initialBidPrice}.`,
-        });
+      return res.status(400).json({
+        error: `Bid amount must be higher than the initial bid price of ₹${flower.initialBidPrice}.`,
+      });
     }
 
     // Find the current highest bid for this flower (if any)
@@ -58,42 +78,65 @@ export const placeBid = async (req: Request, res: Response) => {
       amount: -1,
     });
     if (highestBid && amount <= highestBid.amount) {
-      return res
-        .status(400)
-        .json({
-          error: `Bid amount must be higher than the current highest bid of ₹${highestBid.amount}.`,
-        });
+      return res.status(400).json({
+        error: `Bid amount must be higher than the current highest bid of ₹${highestBid.amount}.`,
+      });
+    }
+    console.log("🚀 userId", userId.toString());
+    console.log("🚀 highestBid.user:", highestBid?.user.toString());
+
+    // Prevent the same user from outbidding themselves
+    if (highestBid && highestBid.user.toString() === userId.toString()) {
+      return res.status(400).json({
+        error: "You cannot outbid yourself unless someone else outbids you.",
+      });
     }
 
-    // Check if the user has already bid on this flower within 90 seconds
-    const recentUserBid = await Bid.findOne({
-      flower: flowerId,
-      user: userId,
-    }).sort({ bidTime: -1 });
-    if (recentUserBid) {
-      const timeDiff =
-        (new Date().getTime() - recentUserBid.bidTime.getTime()) / 1000;
-      if (timeDiff < 90) {
-        return res
-          .status(400)
-          .json({
-            error: `You must wait ${
-              90 - Math.floor(timeDiff)
-            } seconds before bidding again.`,
-          });
-      }
-    }
-
+    // (Optional) If using Redis-based rate limiting, you can check here
+    // or, as we do now, set the key after a successful bid.
     // Create and save the new bid
     const bid = new Bid({
       user: userId,
       flower: flowerId,
       amount,
-      bidTime: new Date(),
+      bidTime: currentTime,
     });
-    await bid.save();
+    const savedBid = await bid.save();
 
-    res.json({ message: "Bid placed successfully.", bid });
+    // Now, determine if this bid is the current highest
+    const highestBidForFlower = await Bid.findOne({ flower: flowerId }).sort({
+      amount: -1,
+    });
+    const isHighest = highestBidForFlower
+      ? highestBidForFlower._id.equals(savedBid._id)
+      : false;
+
+    // Update the user's biddingStatus array:
+    // Prepare the bid status entry.
+    const bidStatusEntry = {
+      flowerId: String(flower._id),
+      flowerName: flower.name, // using new schema field
+      bidAmount: Number(amount),
+      highestBid: isHighest,
+    };
+
+    // Find the user document and update biddingStatus
+    const user = await User.findById(userId);
+    if (user) {
+      // Append the new bid entry
+      user.biddingStatus.push(bidStatusEntry);
+      // Ensure only the latest 10 bids are kept
+      while (user.biddingStatus.length > 10) {
+        user.biddingStatus.shift();
+      }
+      await user.save();
+    }
+
+    // Now set the rate limiter key in Redis (only after a successful bid)
+    const redisKey = `bid:${flowerId}:${userId}`;
+    await client.set(redisKey, "1", { EX: 90 });
+
+    res.json({ message: "Bid placed successfully.", bid: savedBid });
   } catch (error) {
     console.error("Error placing bid:", error);
     res.status(500).json({ error: "Server error." });

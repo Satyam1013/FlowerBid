@@ -1,16 +1,18 @@
 import { Router } from "express";
 import {
-  getAvailableFlowers,
+  getLiveFlowers,
+  getUpcomingFlowers,
   placeBid,
   favoriteFlowers,
 } from "../controller/flower.controller";
-import { bidRateLimiter } from "../middleware/rate.limiter";
 
 const flowerRouter: Router = Router();
 
-flowerRouter.get("/", getAvailableFlowers);
+flowerRouter.get("/live", getLiveFlowers);
 
-flowerRouter.post("/:flowerId/bid", bidRateLimiter, placeBid);
+flowerRouter.get("/upcoming", getUpcomingFlowers);
+
+flowerRouter.post("/:flowerId/bid", placeBid);
 
 flowerRouter.post("/favorites", favoriteFlowers);
 
