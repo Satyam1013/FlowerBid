@@ -1,21 +1,21 @@
-import { createClient } from "redis";
+import { createClient } from 'redis';
+import dotenv from 'dotenv';
+dotenv.config();
 
-// Create a Redis client. Adjust options (host, port, etc.) as needed.
 const client = createClient({
-  url: process.env.REDIS_URL || "redis://localhost:6379",
+  url: process.env.REDIS_URL || 'redis://localhost:6379',
 });
 
-client.on("error", (err: Error) => {
-  console.error("Redis error:", err);
+client.on('error', (err: Error) => {
+  console.error('Redis error:', err);
 });
 
-client
-  .connect()
+client.connect()
   .then(() => {
-    console.log("Connected to Redis");
+    console.log('Connected to Redis');
   })
   .catch((err: Error) => {
-    console.error("Error connecting to Redis:", err);
+    console.error('Error connecting to Redis:', err);
   });
 
 export default client;
