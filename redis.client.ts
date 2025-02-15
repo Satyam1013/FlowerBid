@@ -1,21 +1,28 @@
-import { createClient } from 'redis';
-import dotenv from 'dotenv';
+import { createClient, RedisClientType } from "redis";
+import dotenv from "dotenv";
 dotenv.config();
 
-const client = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379',
-});
+const redisUrl = process.env.REDIS_URL;
 
-client.on('error', (err: Error) => {
-  console.error('Redis error:', err);
-});
+let client: RedisClientType | null = null;
 
-client.connect()
-  .then(() => {
-    console.log('Connected to Redis');
-  })
-  .catch((err: Error) => {
-    console.error('Error connecting to Redis:', err);
+if (redisUrl && redisUrl !== "redis://localhost:6379") {
+  client = createClient({ url: redisUrl });
+
+  client.on("error", (err: Error) => {
+    console.error("Redis error:", err);
   });
+
+  client
+    .connect()
+    .then(() => {
+      console.log("Connected to Redis");
+    })
+    .catch((err: Error) => {
+      console.error("Error connecting to Redis:", err);
+    });
+} else {
+  console.log("No valid Redis URL provided, skipping Redis connection.");
+}
 
 export default client;
