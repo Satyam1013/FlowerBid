@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import Flower from "../models/Flower";
 import Bid from "../models/Bid";
 import client from "../redis.client";
@@ -134,7 +134,7 @@ export const placeBid = async (req: Request, res: Response) => {
 
     // Now set the rate limiter key in Redis (only after a successful bid)
     const redisKey = `bid:${flowerId}:${userId}`;
-    await client.set(redisKey, "1", { EX: 90 });
+    await client!.set(redisKey, "1", { EX: 90 });
 
     res.json({ message: "Bid placed successfully.", bid: savedBid });
   } catch (error) {
