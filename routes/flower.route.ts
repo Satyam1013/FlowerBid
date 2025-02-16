@@ -14,6 +14,6 @@ flowerRouter.get("/upcoming", getUpcomingFlowers);
 
 flowerRouter.post("/:flowerId/bid", placeBid);
 
-flowerRouter.post("/favorites", favoriteFlowers);
+flowerRouter.get("/favorites", favoriteFlowers);
 
 export default flowerRouter;

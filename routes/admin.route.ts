@@ -14,7 +14,7 @@ const adminRouter = Router();
 
 adminRouter.use(authenticator, adminOnly);
 
-adminRouter.post("/flowers", addFlower);
+adminRouter.post("/add-flowers", addFlower);
 
 adminRouter.put("/flowers/:id", updateFlower);
 
