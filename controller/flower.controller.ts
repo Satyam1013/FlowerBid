@@ -82,8 +82,7 @@ export const placeBid = async (req: Request, res: Response) => {
         error: `Bid amount must be higher than the current highest bid of ₹${highestBid.amount}.`,
       });
     }
-    console.log("🚀 userId", userId.toString());
-    console.log("🚀 highestBid.user:", highestBid?.user.toString());
+   
 
     // Prevent the same user from outbidding themselves
     if (highestBid && highestBid.user.toString() === userId.toString()) {
@@ -150,6 +149,43 @@ export const favoriteFlowers = async (req: Request, res: Response) => {
     res.json(favorites);
   } catch (error) {
     console.error("Error fetching favorite flowers:", error);
+    res.status(500).json({ error: "Server error." });
+  }
+};
+
+export const addFavorite = async (req: Request, res: Response) => {
+  try {
+    const { flowerId } = req.params;
+
+    const flower = await Flower.findById(flowerId);
+    if (!flower) {
+      return res.status(404).json({ error: "Flower not found." });
+    }
+
+    // Update the flower's isFavorite status to true
+    flower.isFavorite = true;
+    await flower.save();
+
+    res.json({ message: "Flower marked as favorite.", flower });
+  } catch (error) {
+    console.error("Error marking flower as favorite:", error);
+    res.status(500).json({ error: "Server error." });
+  }
+};
+
+export const getFlowersByCategory = async (req: Request, res: Response) => {
+  try {
+    // Retrieve category from route parameters
+    const { category } = req.params;
+    if (!category) {
+      return res.status(400).json({ error: "Category parameter is required." });
+    }
+
+    // Find all flowers that match the specified category (case-insensitive search)
+    const flowers = await Flower.find({ category: { $regex: new RegExp(`^${category}$`, "i") } });
+    res.json(flowers);
+  } catch (error) {
+    console.error("Error fetching flowers by category:", error);
     res.status(500).json({ error: "Server error." });
   }
 };
