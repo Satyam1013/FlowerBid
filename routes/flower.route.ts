@@ -20,6 +20,6 @@ flowerRouter.get("/favorites", favoriteFlowers);
 
 flowerRouter.post("/:flowerId/add-favorite", addFavorite);
 
-flowerRouter.get("/category/:category", getFlowersGroupedByCategory)
+flowerRouter.get("/category", getFlowersGroupedByCategory)
 
 export default flowerRouter;

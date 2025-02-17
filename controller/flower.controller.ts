@@ -82,7 +82,6 @@ export const placeBid = async (req: Request, res: Response) => {
         error: `Bid amount must be higher than the current highest bid of ₹${highestBid.amount}.`,
       });
     }
-   
 
     // Prevent the same user from outbidding themselves
     if (highestBid && highestBid.user.toString() === userId.toString()) {
@@ -173,7 +172,10 @@ export const addFavorite = async (req: Request, res: Response) => {
   }
 };
 
-export const getFlowersGroupedByCategory = async (req: Request, res: Response) => {
+export const getFlowersGroupedByCategory = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const categories = [
       "Romantic",
@@ -181,21 +183,25 @@ export const getFlowersGroupedByCategory = async (req: Request, res: Response) =
       "Elegant",
       "Exotic",
       "Traditional",
-      "Modern"
+      "Modern",
     ];
 
     // Create an object to hold the results
-    const groupedFlowers: { [key: string]: any[] } = {};
+    const groupedFlowers: { [key: string]: any } = {};
 
-    // For each category, fetch up to 5 flowers using a case-insensitive match.
-    // You might adjust the limit if you want exactly 3-5.
-    await Promise.all(categories.map(async (category) => {
-      const flowers = await Flower.find({
-        category: { $regex: new RegExp(`^${category}$`, "i") }
+    await Promise.all(
+      categories.map(async (category) => {
+        const flowers = await Flower.find({
+          category: { $regex: new RegExp(`^${category}$`, "i") },
+        }).limit(5);
+
+        // If no flowers are found, return a message; otherwise, return the array.
+        groupedFlowers[category] =
+          flowers.length > 0
+            ? flowers
+            : `No flowers found for category ${category}.`;
       })
-        .limit(5);
-      groupedFlowers[category] = flowers;
-    }));
+    );
 
     res.json(groupedFlowers);
   } catch (error) {
