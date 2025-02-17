@@ -152,7 +152,7 @@ export const favoriteFlowers = async (req: Request, res: Response) => {
   }
 };
 
-export const addFavorite = async (req: Request, res: Response) => {
+export const addFavoriteFlower = async (req: Request, res: Response) => {
   try {
     const { flowerId } = req.params;
 

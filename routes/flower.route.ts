@@ -4,7 +4,7 @@ import {
   getUpcomingFlowers,
   placeBid,
   favoriteFlowers,
-  addFavorite,
+  addFavoriteFlower,
   getFlowersGroupedByCategory,
 } from "../controller/flower.controller";
 
@@ -18,7 +18,7 @@ flowerRouter.post("/:flowerId/bid", placeBid);
 
 flowerRouter.get("/favorites", favoriteFlowers);
 
-flowerRouter.post("/:flowerId/add-favorite", addFavorite);
+flowerRouter.post("/:flowerId/add-favorite", addFavoriteFlower);
 
 flowerRouter.get("/category", getFlowersGroupedByCategory)
 
