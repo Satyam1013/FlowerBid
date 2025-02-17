@@ -4,8 +4,8 @@
   "description": "A real-time bidding platform for flowers.",
   "main": "index.ts",
   "scripts": {
-    "start": "ts-node index.ts",
-    "server": "nodemon --exec ts-node index.ts",
+    "start": "npm run build && node dist/index.js",
+    "server": "npm run build && node dist/index.js",
     "build": "tsc",
     "test": "echo \"No tests yet\""
   },
