@@ -5,7 +5,7 @@ import {
   placeBid,
   favoriteFlowers,
   addFavorite,
-  getFlowersByCategory,
+  getFlowersGroupedByCategory,
 } from "../controller/flower.controller";
 
 const flowerRouter: Router = Router();
@@ -20,7 +20,6 @@ flowerRouter.get("/favorites", favoriteFlowers);
 
 flowerRouter.post("/:flowerId/add-favorite", addFavorite);
 
-flowerRouter.get("/category/:category", getFlowersByCategory)
-
+flowerRouter.get("/category/:category", getFlowersGroupedByCategory)
 
 export default flowerRouter;

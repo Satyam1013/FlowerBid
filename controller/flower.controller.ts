@@ -173,19 +173,33 @@ export const addFavorite = async (req: Request, res: Response) => {
   }
 };
 
-export const getFlowersByCategory = async (req: Request, res: Response) => {
+export const getFlowersGroupedByCategory = async (req: Request, res: Response) => {
   try {
-    // Retrieve category from route parameters
-    const { category } = req.params;
-    if (!category) {
-      return res.status(400).json({ error: "Category parameter is required." });
-    }
+    const categories = [
+      "Romantic",
+      "Festive",
+      "Elegant",
+      "Exotic",
+      "Traditional",
+      "Modern"
+    ];
 
-    // Find all flowers that match the specified category (case-insensitive search)
-    const flowers = await Flower.find({ category: { $regex: new RegExp(`^${category}$`, "i") } });
-    res.json(flowers);
+    // Create an object to hold the results
+    const groupedFlowers: { [key: string]: any[] } = {};
+
+    // For each category, fetch up to 5 flowers using a case-insensitive match.
+    // You might adjust the limit if you want exactly 3-5.
+    await Promise.all(categories.map(async (category) => {
+      const flowers = await Flower.find({
+        category: { $regex: new RegExp(`^${category}$`, "i") }
+      })
+        .limit(5);
+      groupedFlowers[category] = flowers;
+    }));
+
+    res.json(groupedFlowers);
   } catch (error) {
-    console.error("Error fetching flowers by category:", error);
+    console.error("Error fetching flowers grouped by category:", error);
     res.status(500).json({ error: "Server error." });
   }
 };
