@@ -6,30 +6,29 @@ interface AuthenticatedRequest extends Request {
 }
 
 export const getUserProfile = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { userId } = req.params;
-
-    if (!userId) {
-      return res.status(400).json({ error: "User ID is required" });
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // 2. Find the user by that ID
+    const userId = req.user._id;
+
+    // Find user by ID
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // 3. Calculate stats (example)
+    // Calculate stats
     const totalAuction = user.biddingStatus?.length || 0;
     const auctionWon =
       user.biddingStatus?.filter((bs) => bs.highestBid).length || 0;
     const auctionLost = totalAuction - auctionWon;
 
-    // 4. Return user info
     return res.json({
       name: user.username,
       email: user.email,

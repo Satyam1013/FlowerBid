@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import Flower from "../models/Flower";
 import Bid from "../models/Bid";
+import User from "../models/User";
 const { io } = require("../index");
 
 export const addFlower = async (req: Request, res: Response) => {
@@ -131,6 +132,7 @@ export const getAllFlowers = async (
   next: NextFunction
 ) => {
   try {
+    const currentTime = new Date();
     const flowers = await Flower.find({
       status: { $in: ["live", "upcoming"] },
     });
@@ -185,7 +187,9 @@ export const determineWinner = async (req: Request, res: Response) => {
       .populate("user", "name email");
 
     if (!highestBid) {
-      return res.status(200).json({ message: "No bids were placed for this flower." });
+      return res
+        .status(200)
+        .json({ message: "No bids were placed for this flower." });
     }
 
     // Update the flower document with the winning bid and update status
@@ -205,5 +209,35 @@ export const determineWinner = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error determining bid winner:", error);
     res.status(500).json({ error: "Server error." });
+  }
+};
+
+export const getUsers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const users = await User.find();
+    res.json(users);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const deletedUser = await User.findByIdAndDelete(id);
+    if (!deletedUser) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    res.json({ message: "User deleted successfully." });
+  } catch (error) {
+    next(error);
   }
 };

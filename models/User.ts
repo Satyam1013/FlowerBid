@@ -14,7 +14,7 @@ export interface UserDocument extends Document {
   password: string;
   mobile: number;
   role: "user" | "admin";
-  balance: number;
+  balance?: number;
   address?: string;
   image?: string;
   biddingStatus: BiddingStatus[];

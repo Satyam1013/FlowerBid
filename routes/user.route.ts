@@ -6,7 +6,7 @@ import {
 
 const userRouter: Router = Router();
 
-userRouter.get("/profile/:userId", getUserProfile);
+userRouter.get("/profile", getUserProfile);
 
 userRouter.put("/update", updateUserDetails);
 

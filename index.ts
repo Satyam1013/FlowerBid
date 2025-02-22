@@ -21,7 +21,7 @@ app.use(cors());
 
 app.use('/api/auth', authRouter);
 app.use('/api/admin', adminRouter);
-app.use("/api/user", userRouter);
+app.use("/api/user", authenticator, userRouter);
 app.use('/api/flowers', flowerRouter);
 
 const server = http.createServer(app);

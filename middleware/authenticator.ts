@@ -22,8 +22,8 @@ export const authenticator = (
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as MyJwtPayload;
-    req.user = { _id: decoded.id, role: decoded.role };
+    const user = jwt.verify(token, process.env.JWT_SECRET!) as MyJwtPayload;
+    req.user = { _id: user.id, role: user.role };
     next();
   } catch (error) {
     return res
