@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import Flower from "../models/Flower";
 import Bid from "../models/Bid";
 import client from "../redis.client";
@@ -7,6 +7,54 @@ import User from "../models/User";
 interface AuthenticatedRequest extends Request {
   user?: { _id: string };
 }
+
+export const getAvailableFlowers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const currentTime = new Date();
+
+    // Base query: only live or upcoming flowers with endDateTime in the future.
+    const query: any = {
+      status: { $in: ["live", "upcoming"] },
+      endDateTime: { $gt: currentTime },
+    };
+
+    // Additional filters from query parameters:
+    const { name, category, minPrice, maxPrice, sort } = req.query;
+
+    // If 'name' is provided, search on flowerName field (case-insensitive).
+    if (name) {
+      query.name = { $regex: new RegExp(name as string, "i") };
+    }
+
+    // If 'category' is provided, perform a case-insensitive exact match.
+    if (category) {
+      query.category = { $regex: new RegExp(`^${category}$`, "i") };
+    }
+
+    // If minPrice or maxPrice is provided, filter by initialBidPrice.
+    if (minPrice || maxPrice) {
+      query.initialBidPrice = {};
+      if (minPrice) query.initialBidPrice.$gte = Number(minPrice);
+      if (maxPrice) query.initialBidPrice.$lte = Number(maxPrice);
+    }
+
+    // Build sort options based on sort query parameter.
+    // For example: ?sort=asc or ?sort=desc will sort by initialBidPrice.
+    const sortOptions: any = {};
+    if (sort) {
+      sortOptions.initialBidPrice = sort === "asc" ? 1 : -1;
+    }
+
+    const flowers = await Flower.find(query).sort(sortOptions);
+    res.json(flowers);
+  } catch (error) {
+    next(error);
+  }
+};
 
 // Get all available flowers (those whose auction hasn't ended yet)
 export const getLiveFlowers = async (req: Request, res: Response) => {
@@ -53,46 +101,42 @@ export const placeBid = async (req: Request, res: Response) => {
     const { amount } = req.body;
     const currentTime = new Date();
 
-    // Find the specified flower
+    // 1. Flower lookup
     const flower = await Flower.findById(flowerId);
     if (!flower) {
       return res.status(404).json({ error: "Flower not found." });
     }
 
-    // Check if bidding time has ended using endDateTime field
+    // 2. Check if bidding has ended
     if (currentTime > flower.endDateTime) {
-      return res
-        .status(400)
-        .json({ error: "Bidding time has ended for this flower." });
+      return res.status(400).json({ error: "Bidding time has ended for this flower." });
     }
 
-    // Ensure that the bid is higher than the initial bid price
+    // 3. Ensure bid is higher than the initial bid price
     if (amount <= flower.initialBidPrice) {
       return res.status(400).json({
         error: `Bid amount must be higher than the initial bid price of ₹${flower.initialBidPrice}.`,
       });
     }
 
-    // Find the current highest bid for this flower (if any)
-    const highestBid = await Bid.findOne({ flower: flowerId }).sort({
-      amount: -1,
-    });
+    // 4. Find current highest bid
+    const highestBid = await Bid.findOne({ flower: flowerId }).sort({ amount: -1 });
     if (highestBid && amount <= highestBid.amount) {
       return res.status(400).json({
         error: `Bid amount must be higher than the current highest bid of ₹${highestBid.amount}.`,
       });
     }
 
-    // Prevent the same user from outbidding themselves
+    console.log('bidUSERid', highestBid?.user.toString());
+    console.log('userID', userId.toString());
+    // 5. Prevent user from outbidding themselves
     if (highestBid && highestBid.user.toString() === userId.toString()) {
       return res.status(400).json({
         error: "You cannot outbid yourself unless someone else outbids you.",
       });
     }
 
-    // (Optional) If using Redis-based rate limiting, you can check here
-    // or, as we do now, set the key after a successful bid.
-    // Create and save the new bid
+    // 6. Create & save the new bid
     const bid = new Bid({
       user: userId,
       flower: flowerId,
@@ -101,40 +145,49 @@ export const placeBid = async (req: Request, res: Response) => {
     });
     const savedBid = await bid.save();
 
-    // Now, determine if this bid is the current highest
-    const highestBidForFlower = await Bid.findOne({ flower: flowerId }).sort({
-      amount: -1,
-    });
+    // 7. Determine if this bid is now the highest
+    const highestBidForFlower = await Bid.findOne({ flower: flowerId }).sort({ amount: -1 });
     const isHighest = highestBidForFlower
       ? highestBidForFlower._id.equals(savedBid._id)
       : false;
 
-    // Update the user's biddingStatus array:
-    // Prepare the bid status entry.
+    // 8. Prepare the bidding status entry
     const bidStatusEntry = {
       flowerId: String(flower._id),
-      flowerName: flower.name, // using new schema field
+      flowerName: flower.name,
       bidAmount: Number(amount),
       highestBid: isHighest,
     };
 
-    // Find the user document and update biddingStatus
+    // 9. Update user's biddingStatus
     const user = await User.findById(userId);
     if (user) {
-      // Append the new bid entry
+      // If this is the new highest bid, set all old entries for this flower to highestBid=false
+      if (isHighest) {
+        user.biddingStatus = user.biddingStatus.map((entry) => {
+          if (entry.flowerId === String(flower._id)) {
+            return { ...entry, highestBid: false };
+          }
+          return entry;
+        });
+      }
+
+      // Add the new bid entry
       user.biddingStatus.push(bidStatusEntry);
-      // Ensure only the latest 10 bids are kept
+
+      // Keep only the latest 10 bids
       while (user.biddingStatus.length > 10) {
         user.biddingStatus.shift();
       }
+
       await user.save();
     }
 
-    // Now set the rate limiter key in Redis (only after a successful bid)
+    // 10. Rate limiter (Redis) set after a successful bid
     const redisKey = `bid:${flowerId}:${userId}`;
-    await client!.set(redisKey, "1", { EX: 90 });
+    await client?.set(redisKey, "1", { EX: 90 });
 
-    res.json({ message: "Bid placed successfully.", bid: savedBid });
+    return res.json({ message: "Bid placed successfully.", bid: savedBid });
   } catch (error) {
     console.error("Error placing bid:", error);
     res.status(500).json({ error: "Server error." });

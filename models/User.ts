@@ -15,6 +15,8 @@ export interface UserDocument extends Document {
   mobile: number;
   role: "user" | "admin";
   balance: number;
+  address?: string;
+  image?: string;
   biddingStatus: BiddingStatus[];
 }
 
@@ -32,6 +34,8 @@ const userSchema = new Schema<UserDocument>({
   mobile: { type: Number, required: true, unique: true },
   role: { type: String, enum: ["user", "admin"], default: "user" },
   balance: { type: Number, default: 0 },
+  address: { type: String },
+  image: { type: String },
   biddingStatus: { type: [biddingStatusSchema], default: [] },
 });
 

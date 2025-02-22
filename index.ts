@@ -19,8 +19,9 @@ app.use(express.json());
 app.use(cors());
 
 app.use('/api/admin', adminRouter);
-app.use('/api/flowers', authenticator, flowerRouter);
+app.use('/api/flowers', flowerRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/user', authenticator, authRouter);
 
 const server = http.createServer(app);
 

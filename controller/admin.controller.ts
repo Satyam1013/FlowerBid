@@ -3,9 +3,6 @@ import Flower from "../models/Flower";
 import Bid from "../models/Bid";
 const { io } = require("../index");
 
-/**
- * Create (Add) a new Flower
- */
 export const addFlower = async (req: Request, res: Response) => {
   try {
     const {
@@ -134,7 +131,12 @@ export const getAllFlowers = async (
   next: NextFunction
 ) => {
   try {
-    const flowers = await Flower.find();
+    const currentTime = new Date();
+    console.log("🚀 ~ currentTime:", currentTime)
+    const flowers = await Flower.find({
+      status: { $in: ["live", "upcoming"] },
+      endDateTime: { $gt: currentTime },
+    });
     res.json(flowers);
   } catch (error) {
     next(error);
