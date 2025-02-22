@@ -131,11 +131,8 @@ export const getAllFlowers = async (
   next: NextFunction
 ) => {
   try {
-    const currentTime = new Date();
-    console.log("🚀 ~ currentTime:", currentTime)
     const flowers = await Flower.find({
       status: { $in: ["live", "upcoming"] },
-      endDateTime: { $gt: currentTime },
     });
     res.json(flowers);
   } catch (error) {

@@ -1,10 +1,13 @@
 import { Router } from "express";
-import { updateUserDetails, getUserProfile } from "../controller/user.controller";
+import {
+  updateUserDetails,
+  getUserProfile,
+} from "../controller/user.controller";
 
 const userRouter: Router = Router();
 
-userRouter.put("/update", updateUserDetails);
+userRouter.get("/profile/:userId", getUserProfile);
 
-userRouter.get("/profile", getUserProfile);
+userRouter.put("/update", updateUserDetails);
 
 export default userRouter;

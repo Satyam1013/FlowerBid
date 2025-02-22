@@ -12,16 +12,17 @@ import { authenticator } from './middleware/authenticator';
 import adminRouter from './routes/admin.route';
 import authRouter from './routes/auth.route';
 import flowerRouter from './routes/flower.route';
-import { startBidCleanupCron } from './cleanup/bid.cleanup.cron';
+import userRouter from './routes/user.route';
+import { startAuctionCleanupCron } from "./cleanup/bid.cleanup.cron";
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-app.use('/api/admin', adminRouter);
-app.use('/api/flowers', flowerRouter);
 app.use('/api/auth', authRouter);
-app.use('/api/user', authenticator, authRouter);
+app.use('/api/admin', adminRouter);
+app.use("/api/user", userRouter);
+app.use('/api/flowers', flowerRouter);
 
 const server = http.createServer(app);
 
@@ -39,7 +40,7 @@ io.on('connection', (socket) => {
   });
 });
 
-startBidCleanupCron();
+startAuctionCleanupCron();
 
 const PORT = process.env.PORT || 8080;
 

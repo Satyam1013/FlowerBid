@@ -14,12 +14,9 @@ export const getAvailableFlowers = async (
   next: NextFunction
 ) => {
   try {
-    const currentTime = new Date();
-
     // Base query: only live or upcoming flowers with endDateTime in the future.
     const query: any = {
       status: { $in: ["live", "upcoming"] },
-      endDateTime: { $gt: currentTime },
     };
 
     // Additional filters from query parameters:
@@ -59,11 +56,9 @@ export const getAvailableFlowers = async (
 // Get all available flowers (those whose auction hasn't ended yet)
 export const getLiveFlowers = async (req: Request, res: Response) => {
   try {
-    const currentTime = new Date();
     // Live flowers: the auction is currently active, and the endDateTime is in the future.
     const flowers = await Flower.find({
       status: "live",
-      endDateTime: { $gt: currentTime },
     });
     res.json(flowers);
   } catch (error) {
@@ -74,12 +69,10 @@ export const getLiveFlowers = async (req: Request, res: Response) => {
 
 export const getUpcomingFlowers = async (req: Request, res: Response) => {
   try {
-    const currentTime = new Date();
     // Upcoming flowers: scheduled to start in the future.
     // You can adjust conditions, e.g., startDateTime is in the future.
     const flowers = await Flower.find({
       status: "upcoming",
-      endDateTime: { $gt: currentTime },
     });
     res.json(flowers);
   } catch (error) {
@@ -109,7 +102,9 @@ export const placeBid = async (req: Request, res: Response) => {
 
     // 2. Check if bidding has ended
     if (currentTime > flower.endDateTime) {
-      return res.status(400).json({ error: "Bidding time has ended for this flower." });
+      return res
+        .status(400)
+        .json({ error: "Bidding time has ended for this flower." });
     }
 
     // 3. Ensure bid is higher than the initial bid price
@@ -120,7 +115,9 @@ export const placeBid = async (req: Request, res: Response) => {
     }
 
     // 4. Find current highest bid
-    const highestBid = await Bid.findOne({ flower: flowerId }).sort({ amount: -1 });
+    const highestBid = await Bid.findOne({ flower: flowerId }).sort({
+      amount: -1,
+    });
     if (highestBid && amount <= highestBid.amount) {
       return res.status(400).json({
         error: `Bid amount must be higher than the current highest bid of ₹${highestBid.amount}.`,
@@ -144,7 +141,9 @@ export const placeBid = async (req: Request, res: Response) => {
     const savedBid = await bid.save();
 
     // 7. Determine if this bid is now the highest
-    const highestBidForFlower = await Bid.findOne({ flower: flowerId }).sort({ amount: -1 });
+    const highestBidForFlower = await Bid.findOne({ flower: flowerId }).sort({
+      amount: -1,
+    });
     const isHighest = highestBidForFlower
       ? highestBidForFlower._id.equals(savedBid._id)
       : false;
