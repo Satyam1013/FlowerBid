@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import Flower from "../models/Flower";
 import Bid from "../models/Bid";
-import client from "../redis.client";
+// import client from "../redis.client";
 import User from "../models/User";
 
 interface AuthenticatedRequest extends Request {
@@ -127,8 +127,6 @@ export const placeBid = async (req: Request, res: Response) => {
       });
     }
 
-    console.log('bidUSERid', highestBid?.user.toString());
-    console.log('userID', userId.toString());
     // 5. Prevent user from outbidding themselves
     if (highestBid && highestBid.user.toString() === userId.toString()) {
       return res.status(400).json({
@@ -184,8 +182,8 @@ export const placeBid = async (req: Request, res: Response) => {
     }
 
     // 10. Rate limiter (Redis) set after a successful bid
-    const redisKey = `bid:${flowerId}:${userId}`;
-    await client?.set(redisKey, "1", { EX: 90 });
+    // const redisKey = `bid:${flowerId}:${userId}`;
+    // await client?.set(redisKey, "1", { EX: 90 });
 
     return res.json({ message: "Bid placed successfully.", bid: savedBid });
   } catch (error) {
