@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt, { JwtPayload, VerifyErrors } from "jsonwebtoken";
+import { Socket } from "socket.io";
 
 export interface AuthenticatedRequest extends Request {
   user?: { _id: string; role: "admin" | "user" };
@@ -30,4 +31,31 @@ export const authenticator = (
       .status(401)
       .json({ error: "Invalid token. Please login again." });
   }
+};
+
+interface DecodedToken {
+  _id: string;
+  // add other properties if needed
+}
+
+export const socketAuthenticator = (
+  socket: Socket,
+  next: (err?: Error) => void
+): void => {
+  const token = socket.handshake.auth.token;
+  if (!token) {
+    return next(new Error("Authentication error: No token provided"));
+  }
+  jwt.verify(
+    token,
+    process.env.JWT_SECRET as string,
+    (err: VerifyErrors | null, decoded: unknown) => {
+      if (err) {
+        return next(new Error("Authentication error: Invalid token"));
+      }
+      console.log('✨ ~ decoded:', decoded)
+      socket.data.user = decoded as DecodedToken;
+      next();
+    }
+  );
 };

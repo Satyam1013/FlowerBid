@@ -1,9 +1,14 @@
 import { Server } from "socket.io";
 import Flower from "./models/Flower";
+import { socketAuthenticator } from "./middleware/authenticator";
 
 export const initializeSocket = (io: Server) => {
+  // Use the socket authentication middleware
+  io.use(socketAuthenticator);
+
   io.on("connection", (socket) => {
-    console.log("User Connected:", socket.id);
+    const userId = socket.data.user?._id
+    console.log("User Connected:", socket.id, "UserID:", userId);
 
     // Start Auction
     socket.on("startAuction", async (flowerId: string) => {
@@ -16,10 +21,6 @@ export const initializeSocket = (io: Server) => {
           flower.status = "live";
           await flower.save();
           io.emit("auctionStarted", flower);
-        } else {
-          socket.emit("auctionError", {
-            message: "Auction start time is not in the future.",
-          });
         }
       } catch (error) {
         console.error("Error starting auction:", error);
@@ -53,15 +54,13 @@ export const initializeSocket = (io: Server) => {
           if (!flower) {
             return socket.emit("bidError", { message: "Flower not found" });
           }
-
-          // Ensure auction is active and the bid is valid
           if (
             flower.status === "live" &&
             data.bidPrice > flower.currentBidPrice
           ) {
             flower.currentBidPrice = data.bidPrice;
             await flower.save();
-            io.emit("bidUpdated", flower);
+            io.emit("bidUpdated", userId, flower);
           } else {
             socket.emit("bidError", {
               message: "Bid must be higher than current price",

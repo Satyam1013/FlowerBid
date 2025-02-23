@@ -27,6 +27,7 @@ const flowerSchema = new Schema<FlowerDocument>({
     type: String,
     required: true,
     enum: ["live", "upcoming", "closed"],
+    default: "upcoming",
   },
   lotNumber: { type: Number, required: true, unique: true },
   initialBidPrice: { type: Number, required: true },
