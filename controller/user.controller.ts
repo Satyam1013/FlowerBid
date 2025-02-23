@@ -23,21 +23,13 @@ export const getUserProfile = async (
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Calculate stats
-    const totalAuction = user.biddingStatus?.length || 0;
-    const auctionWon =
-      user.biddingStatus?.filter((bs) => bs.highestBid).length || 0;
-    const auctionLost = totalAuction - auctionWon;
-
     return res.json({
-      name: user.username,
+      username: user.username,
       email: user.email,
-      phoneNo: user.mobile,
+      mobile: user.mobile,
       address: user.address,
       image: user.image,
-      totalAuction,
-      auctionWon,
-      auctionLost,
+      biddingStatus: user.biddingStatus,
     });
   } catch (error) {
     next(error);
@@ -49,13 +41,12 @@ export const getUserProfile = async (
  * Allowed fields: username, address, image, mobile (phone number).
  */
 export const updateUserDetails = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-    const userId = authReq.user?._id;
+    const userId = req.user?._id;
     if (!userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }

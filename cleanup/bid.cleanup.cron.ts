@@ -11,19 +11,6 @@ export const startAuctionCleanupCron = () => {
       );
 
       try {
-        const currentTime = new Date();
-
-        // **Step 1: Update Flower Status**
-        await Flower.updateMany(
-          {
-            status: { $in: ["live", "upcoming"] },
-            endDateTime: { $lte: currentTime },
-          },
-          { $set: { status: "closed" } }
-        );
-        console.log("✅ Updated closed auctions.");
-
-        // **Step 2: Cleanup Bids**
         const closedFlowers = await Flower.find(
           { status: "closed" },
           { _id: 1, winningBid: 1 }

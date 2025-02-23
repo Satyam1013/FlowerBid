@@ -1,8 +1,10 @@
 import { NextFunction, Request, Response } from "express";
-import Flower from "../models/Flower";
+import Flower, { FlowerDocument, IFlower } from "../models/Flower";
 import Bid from "../models/Bid";
 // import client from "../redis.client";
 import User from "../models/User";
+import { FilterQuery } from "mongoose";
+import mongoose from "mongoose";
 
 interface AuthenticatedRequest extends Request {
   user?: { _id: string };
@@ -14,22 +16,22 @@ export const getAvailableFlowers = async (
   next: NextFunction
 ) => {
   try {
-    // Base query: only live or upcoming flowers with endDateTime in the future.
-    const query: any = {
+    const query: FilterQuery<IFlower> = {
       status: { $in: ["live", "upcoming"] },
     };
 
-    // Additional filters from query parameters:
     const { name, category, minPrice, maxPrice, sort } = req.query;
 
-    // If 'name' is provided, search on flowerName field (case-insensitive).
     if (name) {
       query.name = { $regex: new RegExp(name as string, "i") };
     }
 
-    // If 'category' is provided, perform a case-insensitive exact match.
+    // If 'category' is provided, support multiple categories (comma-separated).
     if (category) {
-      query.category = { $regex: new RegExp(`^${category}$`, "i") };
+      const categories = (category as string)
+        .split(",")
+        .map((cat) => cat.trim());
+      query.category = { $in: categories };
     }
 
     // If minPrice or maxPrice is provided, filter by initialBidPrice.
@@ -40,8 +42,7 @@ export const getAvailableFlowers = async (
     }
 
     // Build sort options based on sort query parameter.
-    // For example: ?sort=asc or ?sort=desc will sort by initialBidPrice.
-    const sortOptions: any = {};
+    const sortOptions: Record<string, 1 | -1> = {};
     if (sort) {
       sortOptions.initialBidPrice = sort === "asc" ? 1 : -1;
     }
@@ -53,10 +54,8 @@ export const getAvailableFlowers = async (
   }
 };
 
-// Get all available flowers (those whose auction hasn't ended yet)
 export const getLiveFlowers = async (req: Request, res: Response) => {
   try {
-    // Live flowers: the auction is currently active, and the endDateTime is in the future.
     const flowers = await Flower.find({
       status: "live",
     });
@@ -82,128 +81,145 @@ export const getUpcomingFlowers = async (req: Request, res: Response) => {
 };
 
 // Place a bid for a specific flower
-export const placeBid = async (req: Request, res: Response) => {
+// export const placeBid = async (req: AuthenticatedRequest, res: Response) => {
+//   try {
+//     const userId = req.user?._id;
+//     if (!userId) {
+//       return res.status(401).json({ error: "Not authenticated" });
+//     }
+
+//     const { flowerId } = req.params;
+//     const { amount } = req.body;
+//     const currentTime = new Date();
+
+//     // 1. Flower lookup
+//     const flower = await Flower.findById(flowerId);
+//     if (!flower) {
+//       return res.status(404).json({ error: "Flower not found." });
+//     }
+
+//     // 2. Check if bidding has ended
+//     if (currentTime > flower.endDateTime) {
+//       return res
+//         .status(400)
+//         .json({ error: "Bidding time has ended for this flower." });
+//     }
+
+//     // 3. Ensure bid is higher than the initial bid price
+//     if (amount <= flower.initialBidPrice) {
+//       return res.status(400).json({
+//         error: `Bid amount must be higher than the initial bid price of ₹${flower.initialBidPrice}.`,
+//       });
+//     }
+
+//     // 4. Find current highest bid
+//     const highestBid = await Bid.findOne({ flower: flowerId }).sort({
+//       amount: -1,
+//     });
+//     if (highestBid && amount <= highestBid.amount) {
+//       return res.status(400).json({
+//         error: `Bid amount must be higher than the current highest bid of ₹${highestBid.amount}.`,
+//       });
+//     }
+
+//     // 5. Prevent user from outbidding themselves
+//     if (highestBid && highestBid.user.toString() === userId.toString()) {
+//       return res.status(400).json({
+//         error: "You cannot outbid yourself unless someone else outbids you.",
+//       });
+//     }
+
+//     // 6. Create & save the new bid
+//     const bid = new Bid({
+//       user: userId,
+//       flower: flowerId,
+//       amount,
+//       bidTime: currentTime,
+//     });
+//     const savedBid = await bid.save();
+
+//     // 7. Determine if this bid is now the highest
+//     const highestBidForFlower = await Bid.findOne({ flower: flowerId }).sort({
+//       amount: -1,
+//     });
+//     const isHighest = highestBidForFlower
+//       ? highestBidForFlower._id.equals(savedBid._id)
+//       : false;
+
+//     // 8. Prepare the bidding status entry
+//     const bidStatusEntry = {
+//       flowerId: String(flower._id),
+//       flowerName: flower.name,
+//       bidAmount: Number(amount),
+//       highestBid: isHighest,
+//     };
+
+//     // 9. Update all users' biddingStatus
+//     const usersWithBids = await User.find({
+//       "biddingStatus.flowerId": flowerId,
+//     });
+
+//     for (const otherUser of usersWithBids) {
+//       otherUser.biddingStatus = otherUser.biddingStatus.map((entry) => {
+//         if (entry.flowerId === String(flower._id)) {
+//           return { ...entry, highestBid: false };
+//         }
+//         return entry;
+//       });
+
+//       await otherUser.save();
+//     }
+
+//     // 10. Update the current user's biddingStatus
+//     const user = await User.findById(userId);
+//     if (user) {
+//       // Add the new bid entry with highestBid = true
+//       user.biddingStatus.push({ ...bidStatusEntry, highestBid: true });
+
+//       // Keep only the latest 10 bids
+//       while (user.biddingStatus.length > 10) {
+//         user.biddingStatus.shift();
+//       }
+
+//       await user.save();
+//     }
+
+//     // 11. Rate limiter (Redis) set after a successful bid
+//     // const redisKey = `bid:${flowerId}:${userId}`;
+//     // await client?.set(redisKey, "1", { EX: 90 });
+
+//     return res.json({ message: "Bid placed successfully.", bid: savedBid });
+//   } catch (error) {
+//     console.error("Error placing bid:", error);
+//     res.status(500).json({ error: "Server error." });
+//   }
+// };
+
+export const getFavoriteFlowers = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
-    const authReq = req as AuthenticatedRequest;
-    const userId = authReq.user?._id;
-    if (!userId) {
-      return res.status(401).json({ error: "Not authenticated" });
+    const userId = req.user?._id;
+
+    const user = await User.findById(userId).populate("favoriteFlowers");
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
     }
 
-    const { flowerId } = req.params;
-    const { amount } = req.body;
-    const currentTime = new Date();
-
-    // 1. Flower lookup
-    const flower = await Flower.findById(flowerId);
-    if (!flower) {
-      return res.status(404).json({ error: "Flower not found." });
-    }
-
-    // 2. Check if bidding has ended
-    if (currentTime > flower.endDateTime) {
-      return res
-        .status(400)
-        .json({ error: "Bidding time has ended for this flower." });
-    }
-
-    // 3. Ensure bid is higher than the initial bid price
-    if (amount <= flower.initialBidPrice) {
-      return res.status(400).json({
-        error: `Bid amount must be higher than the initial bid price of ₹${flower.initialBidPrice}.`,
-      });
-    }
-
-    // 4. Find current highest bid
-    const highestBid = await Bid.findOne({ flower: flowerId }).sort({
-      amount: -1,
-    });
-    if (highestBid && amount <= highestBid.amount) {
-      return res.status(400).json({
-        error: `Bid amount must be higher than the current highest bid of ₹${highestBid.amount}.`,
-      });
-    }
-
-    // 5. Prevent user from outbidding themselves
-    if (highestBid && highestBid.user.toString() === userId.toString()) {
-      return res.status(400).json({
-        error: "You cannot outbid yourself unless someone else outbids you.",
-      });
-    }
-
-    // 6. Create & save the new bid
-    const bid = new Bid({
-      user: userId,
-      flower: flowerId,
-      amount,
-      bidTime: currentTime,
-    });
-    const savedBid = await bid.save();
-
-    // 7. Determine if this bid is now the highest
-    const highestBidForFlower = await Bid.findOne({ flower: flowerId }).sort({
-      amount: -1,
-    });
-    const isHighest = highestBidForFlower
-      ? highestBidForFlower._id.equals(savedBid._id)
-      : false;
-
-    // 8. Prepare the bidding status entry
-    const bidStatusEntry = {
-      flowerId: String(flower._id),
-      flowerName: flower.name,
-      bidAmount: Number(amount),
-      highestBid: isHighest,
-    };
-
-    // 9. Update user's biddingStatus
-    const user = await User.findById(userId);
-    if (user) {
-      // If this is the new highest bid, set all old entries for this flower to highestBid=false
-      if (isHighest) {
-        user.biddingStatus = user.biddingStatus.map((entry) => {
-          if (entry.flowerId === String(flower._id)) {
-            return { ...entry, highestBid: false };
-          }
-          return entry;
-        });
-      }
-
-      // Add the new bid entry
-      user.biddingStatus.push(bidStatusEntry);
-
-      // Keep only the latest 10 bids
-      while (user.biddingStatus.length > 10) {
-        user.biddingStatus.shift();
-      }
-
-      await user.save();
-    }
-
-    // 10. Rate limiter (Redis) set after a successful bid
-    // const redisKey = `bid:${flowerId}:${userId}`;
-    // await client?.set(redisKey, "1", { EX: 90 });
-
-    return res.json({ message: "Bid placed successfully.", bid: savedBid });
-  } catch (error) {
-    console.error("Error placing bid:", error);
-    res.status(500).json({ error: "Server error." });
-  }
-};
-
-// Get all favorite flowers
-export const favoriteFlowers = async (req: Request, res: Response) => {
-  try {
-    const favorites = await Flower.find({ isFavorite: true });
-    res.json(favorites);
+    res.json({ favoriteFlowers: user.favoriteFlowers });
   } catch (error) {
     console.error("Error fetching favorite flowers:", error);
     res.status(500).json({ error: "Server error." });
   }
 };
 
-export const addFavoriteFlower = async (req: Request, res: Response) => {
+export const addFavoriteFlower = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
   try {
+    const userId = req.user?._id;
     const { flowerId } = req.params;
 
     const flower = await Flower.findById(flowerId);
@@ -211,13 +227,54 @@ export const addFavoriteFlower = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Flower not found." });
     }
 
-    // Update the flower's isFavorite status to true
-    flower.isFavorite = true;
-    await flower.save();
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    const flowerObjectId = new mongoose.Types.ObjectId(flowerId);
 
-    res.json({ message: "Flower marked as favorite.", flower });
+    // Check if the flower is already in favorites
+    if (user.favoriteFlowers.includes(flowerObjectId)) {
+      return res.status(400).json({ error: "Flower is already in favorites." });
+    }
+
+    user.favoriteFlowers.push(flowerObjectId);
+    await user.save();
+
+    res.json({
+      message: "Flower added to favorites.",
+      favoriteFlowers: user.favoriteFlowers,
+    });
   } catch (error) {
-    console.error("Error marking flower as favorite:", error);
+    console.error("Error adding flower to favorites:", error);
+    res.status(500).json({ error: "Server error." });
+  }
+};
+
+export const removeFavoriteFlower = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const userId = req.user?._id;
+    const { flowerId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    user.favoriteFlowers = user.favoriteFlowers.filter(
+      (id) => id.toString() !== flowerId
+    );
+
+    await user.save();
+    res.json({
+      message: "Flower removed from favorites.",
+      favoriteFlowers: user.favoriteFlowers,
+    });
+  } catch (error) {
+    console.error("Error removing flower from favorites:", error);
     res.status(500).json({ error: "Server error." });
   }
 };
@@ -236,8 +293,8 @@ export const getFlowersGroupedByCategory = async (
       "Modern",
     ];
 
-    // Create an object to hold the results
-    const groupedFlowers: { [key: string]: any } = {};
+    // Define a properly typed object
+    const groupedFlowers: Record<string, FlowerDocument[] | string> = {};
 
     await Promise.all(
       categories.map(async (category) => {
@@ -245,7 +302,7 @@ export const getFlowersGroupedByCategory = async (
           category: { $regex: new RegExp(`^${category}$`, "i") },
         }).limit(5);
 
-        // If no flowers are found, return a message; otherwise, return the array.
+        // Store results in groupedFlowers
         groupedFlowers[category] =
           flowers.length > 0
             ? flowers

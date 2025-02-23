@@ -1,8 +1,6 @@
-// models/Flower.ts
 import { Schema, model, Document, Types } from "mongoose";
 
-export interface FlowerDocument extends Document {
-  _id: Types.ObjectId;
+export interface IFlower {
   name: string;
   image: string;
   size: number;
@@ -15,8 +13,9 @@ export interface FlowerDocument extends Document {
   startDateTime: Date;
   endDateTime: Date;
   winningBid?: Types.ObjectId;
-  isFavorite: boolean;
 }
+
+export interface FlowerDocument extends Document<Types.ObjectId>, IFlower {}
 
 const flowerSchema = new Schema<FlowerDocument>({
   name: { type: String, required: true },
@@ -35,9 +34,8 @@ const flowerSchema = new Schema<FlowerDocument>({
   startDateTime: { type: Date, required: true },
   endDateTime: { type: Date, required: true },
   winningBid: { type: Schema.Types.ObjectId, ref: "Bid" },
-  isFavorite: { type: Boolean, default: false },
 });
 
-const Flower = model<FlowerDocument>("flower", flowerSchema);
+const Flower = model<FlowerDocument>("Flower", flowerSchema);
 
 export default Flower;

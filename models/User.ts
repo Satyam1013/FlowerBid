@@ -1,5 +1,4 @@
-// models/User.ts
-import { Schema, model, Document } from "mongoose";
+import { Schema, model, Document, Types } from "mongoose";
 
 export interface BiddingStatus {
   flowerId: string;
@@ -18,6 +17,7 @@ export interface UserDocument extends Document {
   address?: string;
   image?: string;
   biddingStatus: BiddingStatus[];
+  favoriteFlowers: Types.ObjectId[];
 }
 
 const biddingStatusSchema = new Schema<BiddingStatus>({
@@ -37,6 +37,9 @@ const userSchema = new Schema<UserDocument>({
   address: { type: String },
   image: { type: String },
   biddingStatus: { type: [biddingStatusSchema], default: [] },
+  favoriteFlowers: [
+    { type: Schema.Types.ObjectId, ref: "Flower", default: [] },
+  ],
 });
 
 const User = model<UserDocument>("user", userSchema);

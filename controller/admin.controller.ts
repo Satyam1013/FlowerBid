@@ -18,7 +18,6 @@ export const addFlower = async (req: Request, res: Response) => {
       currentBidPrice,
       startDateTime,
       endDateTime,
-      isFavorite,
     } = req.body;
 
     // Create a new Flower document
@@ -34,7 +33,6 @@ export const addFlower = async (req: Request, res: Response) => {
       currentBidPrice,
       startDateTime,
       endDateTime,
-      isFavorite,
     });
 
     await flower.save();
@@ -132,7 +130,6 @@ export const getAllFlowers = async (
   next: NextFunction
 ) => {
   try {
-    const currentTime = new Date();
     const flowers = await Flower.find({
       status: { $in: ["live", "upcoming"] },
     });
