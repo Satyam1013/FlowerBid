@@ -35,13 +35,12 @@ export const authenticator = (
 
 interface DecodedToken {
   _id: string;
-  // add other properties if needed
 }
 
 export const socketAuthenticator = (
   socket: Socket,
   next: (err?: Error) => void
-): void => {
+) => {
   const token = socket.handshake.auth.token;
   if (!token) {
     return next(new Error("Authentication error: No token provided"));
@@ -53,7 +52,6 @@ export const socketAuthenticator = (
       if (err) {
         return next(new Error("Authentication error: Invalid token"));
       }
-      console.log('✨ ~ decoded:', decoded)
       socket.data.user = decoded as DecodedToken;
       next();
     }

@@ -7,9 +7,6 @@ export const initializeSocket = (io: Server) => {
   io.use(socketAuthenticator);
 
   io.on("connection", (socket) => {
-    const userId = socket.data.user?._id
-    console.log("User Connected:", socket.id, "UserID:", userId);
-
     // Start Auction
     socket.on("startAuction", async (flowerId: string) => {
       try {
@@ -58,9 +55,15 @@ export const initializeSocket = (io: Server) => {
             flower.status === "live" &&
             data.bidPrice > flower.currentBidPrice
           ) {
+            const userId = socket.data.user?._id;
+            if (!userId) {
+              return socket.emit("bidError", {
+                message: "User not authenticated",
+              });
+            }
             flower.currentBidPrice = data.bidPrice;
             await flower.save();
-            io.emit("bidUpdated", userId, flower);
+            io.emit("bidUpdated", { userId, flower });
           } else {
             socket.emit("bidError", {
               message: "Bid must be higher than current price",
