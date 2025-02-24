@@ -7,6 +7,8 @@ export const initializeSocket = (io: Server) => {
   io.use(socketAuthenticator);
 
   io.on("connection", (socket) => {
+    console.log("✨ ~ userId:", socket.data.user);
+
     // Start Auction
     socket.on("startAuction", async (flowerId: string) => {
       try {
