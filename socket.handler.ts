@@ -57,7 +57,7 @@ export const initializeSocket = (io: Server) => {
             flower.status === "live" &&
             data.bidPrice > flower.currentBidPrice
           ) {
-            const userId = socket.data.user?._id;
+            const userId = socket.data.user?.id;
             if (!userId) {
               return socket.emit("bidError", {
                 message: "User not authenticated",
