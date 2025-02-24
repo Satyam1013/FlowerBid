@@ -44,7 +44,7 @@ export const initializeSocket = (io: Server) => {
       }
     });
 
-    // Handle User Bids
+    // Handle User Bids with concurrency handling
     socket.on(
       "placeBid",
       async (data: { flowerId: string; bidPrice: number }) => {
@@ -54,17 +54,37 @@ export const initializeSocket = (io: Server) => {
           if (!flower) {
             return socket.emit("bidError", { message: "Flower not found" });
           }
-          // Ensure the bid is valid
-          if (
-            !(
-              flower.status === "live" && data.bidPrice > flower.currentBidPrice
-            )
-          ) {
+
+          // If bidding time has ended, update status and inform client.
+          if (new Date() > flower.endDateTime) {
+            flower.status = "closed";
+            await flower.save();
+            io.emit("auctionStatusUpdated", flower);
+            return socket.emit("bidError", {
+              message: "Bidding time has ended. Auction closed.",
+            });
+          }
+
+          // Atomically update the flower's current bid price.
+          // The condition ensures that only a bid strictly greater than the currentBidPrice will update.
+          const updatedFlower = await Flower.findOneAndUpdate(
+            {
+              _id: data.flowerId,
+              status: "live",
+              currentBidPrice: { $lt: data.bidPrice },
+            },
+            { $set: { currentBidPrice: data.bidPrice } },
+            { new: true }
+          );
+
+          // If no document was updated, then the bid was not strictly higher.
+          if (!updatedFlower) {
             return socket.emit("bidError", {
               message: "Bid must be higher than current price",
             });
           }
-          // Extract the user ID (adjust according to your user schema; here we assume 'id')
+
+          // Extract the user ID (assuming it's stored as 'id' on socket.data.user)
           const userId = socket.data.user?.id;
           if (!userId) {
             return socket.emit("bidError", {
@@ -72,35 +92,37 @@ export const initializeSocket = (io: Server) => {
             });
           }
 
-          // Update the flower's current bid price
-          flower.currentBidPrice = data.bidPrice;
-
-          // 1. Save the bid record
-          const bid = new Bid({
+          // Save the bid record (bidTime and winningBid get their defaults)
+          const newBid = new Bid({
             user: userId,
             flower: data.flowerId,
             amount: data.bidPrice,
-            bidTime: new Date(),
           });
-          const savedBid = await bid.save();
+          const savedBid = await newBid.save();
 
-          // 2. Determine if this bid is now the highest
-          const highestBidForFlower = await Bid.findOne({
-            flower: data.flowerId,
-          }).sort({ amount: -1 });
-          const isHighest = highestBidForFlower
-            ? highestBidForFlower._id.equals(savedBid._id)
-            : false;
+          // Because the update was atomic, this bid is now the highest.
+          // Mark it as winning and update all other bids for this flower as not winning.
+          savedBid.winningBid = true;
+          await savedBid.save();
+          
+          await Bid.updateMany(
+            { flower: data.flowerId, _id: { $ne: savedBid._id } },
+            { $set: { winningBid: false } }
+          );
 
-          // 3. Prepare the bidding status entry using the full flower object
+          // Update the flower document's winningBid field.
+          updatedFlower.winningBid = savedBid._id;
+          await updatedFlower.save();
+
+          // Prepare a bidding status entry for the users using the full flower object.
           const bidStatusEntry = {
-            flower: flower.toObject(), // convert to a plain object
+            flower: updatedFlower.toObject(),
             bidAmount: data.bidPrice,
-            highestBid: isHighest,
+            highestBid: true,
           };
 
-          // 4. Update biddingStatus for all users who have bids on this flower
-          // Query by matching the nested property "flower._id"
+          // Update biddingStatus for all users who have bids on this flower,
+          // setting highestBid to false for those entries.
           const usersWithBids = await User.find({
             "biddingStatus.flower._id": data.flowerId,
           });
@@ -109,7 +131,7 @@ export const initializeSocket = (io: Server) => {
               if (
                 entry.flower &&
                 entry.flower._id &&
-                entry.flower._id.toString() === flower._id.toString()
+                entry.flower._id.toString() === data.flowerId
               ) {
                 return { ...entry, highestBid: false };
               }
@@ -118,11 +140,10 @@ export const initializeSocket = (io: Server) => {
             await otherUser.save();
           }
 
-          // 5. Update the current user's biddingStatus
+          // Update the current user's biddingStatus
           const user = await User.findById(userId);
           if (user) {
-            // Add the new bid entry, ensuring highestBid is true for the current user's entry
-            user.biddingStatus.push({ ...bidStatusEntry, highestBid: true });
+            user.biddingStatus.push({ ...bidStatusEntry });
             // Keep only the latest 10 bids
             while (user.biddingStatus.length > 10) {
               user.biddingStatus.shift();
@@ -130,14 +151,8 @@ export const initializeSocket = (io: Server) => {
             await user.save();
           }
 
-          // 6. Save the winning bidId inside the flower document if this is the highest bid
-          if (isHighest) {
-            flower.winningBid = savedBid._id; // Ensure your Flower model supports this field
-          }
-          await flower.save();
-
           // Emit the bid update to all clients with the userId and updated flower data
-          io.emit("bidUpdated", { userId, flower });
+          io.emit("bidUpdated", { userId, flower: updatedFlower });
         } catch (error) {
           console.error("Error placing bid:", error);
           socket.emit("bidError", { message: "Failed to place bid" });

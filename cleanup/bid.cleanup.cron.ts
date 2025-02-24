@@ -9,21 +9,18 @@ export const startAuctionCleanupCron = () => {
       console.log(
         "🛠 Running auction status update & bid cleanup job at 1 AM..."
       );
-
       try {
+        // Find closed flowers
         const closedFlowers = await Flower.find(
           { status: "closed" },
-          { _id: 1, winningBid: 1 }
+          { _id: 1 }
         );
-
         const closedFlowerIds = closedFlowers.map((flower) => flower._id);
-        const winningBidIds = closedFlowers
-          .filter((flower) => flower.winningBid)
-          .map((flower) => flower.winningBid!.toString());
 
+        // Delete all bids for closed flowers that are not winning bids
         await Bid.deleteMany({
           flower: { $in: closedFlowerIds },
-          _id: { $nin: winningBidIds }, // Keep only winning bid
+          winningBid: false, // Delete if winningBid is false
         });
 
         console.log("✅ Bid cleanup completed.");
