@@ -1,8 +1,8 @@
 import { Schema, model, Document, Types } from "mongoose";
+import { FlowerDocument, flowerSchema } from "./Flower";
 
 export interface BiddingStatus {
-  flowerId: string;
-  flowerName: string;
+  flower: FlowerDocument;
   bidAmount: number;
   highestBid: boolean;
 }
@@ -21,8 +21,7 @@ export interface UserDocument extends Document {
 }
 
 const biddingStatusSchema = new Schema<BiddingStatus>({
-  flowerId: { type: String, required: true },
-  flowerName: { type: String, required: true },
+  flower: { type: flowerSchema, required: true },
   bidAmount: { type: Number, required: true },
   highestBid: { type: Boolean, required: true },
 });

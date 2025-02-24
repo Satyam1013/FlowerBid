@@ -17,7 +17,7 @@ export interface IFlower {
 
 export interface FlowerDocument extends Document<Types.ObjectId>, IFlower {}
 
-const flowerSchema = new Schema<FlowerDocument>({
+export const flowerSchema = new Schema<FlowerDocument>({
   name: { type: String, required: true },
   image: { type: String, required: true },
   size: { type: Number, required: true },

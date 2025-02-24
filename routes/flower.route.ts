@@ -19,8 +19,6 @@ flowerRouter.get("/live", getLiveFlowers);
 
 flowerRouter.get("/upcoming", getUpcomingFlowers);
 
-// flowerRouter.post("/:flowerId/bid", authenticator, placeBid);
-
 flowerRouter.get("/favorites", authenticator, getFavoriteFlowers);
 
 flowerRouter.post("/:flowerId/add-favorite", authenticator, addFavoriteFlower);
