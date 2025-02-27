@@ -1,7 +1,5 @@
 import { NextFunction, Request, Response } from "express";
 import Flower, { FlowerDocument, IFlower } from "../models/Flower";
-import Bid from "../models/Bid";
-// import client from "../redis.client";
 import User from "../models/User";
 import { FilterQuery } from "mongoose";
 import mongoose from "mongoose";
