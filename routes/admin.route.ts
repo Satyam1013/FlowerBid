@@ -8,6 +8,7 @@ import {
   createSeller,
   deleteSeller,
   getAllFlowers,
+  getCategories,
 } from "../controller/admin.controller";
 import { authenticator } from "../middleware/authenticator";
 import { adminOnly } from "../middleware/admin.only";
@@ -20,6 +21,8 @@ adminRouter.use(authenticator, adminOnly);
 adminRouter.post("/declare-winner/:flowerId", determineWinner);
 
 adminRouter.post("/add-category", createCategory);
+
+adminRouter.get("/categories", getCategories);
 
 adminRouter.get("/flowers", getAllFlowers);
 

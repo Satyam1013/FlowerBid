@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import Flower, { FlowerDocument } from "../models/Flower";
+import Category from "../models/Category";
 import User from "../models/User";
 import { AuthenticatedRequest } from "../middleware/authenticator";
 import { FilterQuery } from "mongoose";
@@ -16,7 +17,7 @@ export const addFlowerBySeller = async (
       return res.status(403).json({ error: "Only sellers can add flowers." });
     }
 
-    const {
+    let {
       name,
       image,
       size,
@@ -27,6 +28,12 @@ export const addFlowerBySeller = async (
       startTime,
       endTime,
     } = req.body;
+
+    // Find category by name
+    const existingCategory = await Category.findOne({ name: category });
+    if (!existingCategory) {
+      return res.status(400).json({ error: "Invalid category name." });
+    }
 
     const now = new Date();
     const startDate = new Date(startTime);
@@ -39,7 +46,7 @@ export const addFlowerBySeller = async (
       status = "closed";
     }
 
-    // Generate lotNumber automatically: first flower gets 101, then increment
+    // Generate lotNumber automatically
     const lastFlower = await Flower.findOne().sort({ lotNumber: -1 });
     const newLotNumber = lastFlower ? lastFlower.lotNumber + 1 : 1;
 
@@ -49,7 +56,7 @@ export const addFlowerBySeller = async (
       size,
       quantity,
       description,
-      category,
+      category: existingCategory._id,
       initialBidPrice,
       currentBidPrice: initialBidPrice,
       startTime,
@@ -110,7 +117,7 @@ export const updateFlower = async (
 };
 
 /**
- * Get all Flowers
+ * Get all Flowers by Seller ID
  */
 export const getFlowersBySellerId = async (
   req: AuthenticatedRequest,
@@ -169,7 +176,6 @@ export const deleteFlower = async (
     next(error);
   }
 };
-
 
 /**
  * Update a Seller by ID
