@@ -7,6 +7,7 @@ import {
   getAllFlowers,
   getFlower,
   updateFlower,
+  updateSeller,
 } from "../controller/seller.controller";
 
 const sellerRouter = Router();
@@ -25,6 +26,6 @@ sellerRouter.get("/flowers", getAllFlowers);
 sellerRouter.delete("/flowers/:id", deleteFlower);
 
 // Seller management routes
-sellerRouter.put("/:id", updateFlower);
+sellerRouter.put("/update", updateSeller);
 
 export default sellerRouter;

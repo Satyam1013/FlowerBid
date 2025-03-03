@@ -18,7 +18,7 @@ adminRouter.use(authenticator, adminOnly);
 // Flower management routes
 adminRouter.post("/declare-winner/:flowerId", determineWinner);
 
-adminRouter.post("/add-category/:flowerId", createCategory);
+adminRouter.post("/add-category", createCategory);
 
 // Seller management routes
 adminRouter.post("/create-seller", createSeller);

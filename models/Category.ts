@@ -8,6 +8,6 @@ const categorySchema = new Schema<CategoryDocument>({
   name: { type: String, required: true, unique: true },
 });
 
-const Category = model<CategoryDocument>("Category", categorySchema);
+const Category = model<CategoryDocument>("category", categorySchema);
 
 export default Category;
