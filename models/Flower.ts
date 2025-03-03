@@ -5,13 +5,14 @@ export interface IFlower {
   image: string;
   size: number;
   quantity: string;
+  description?: string;
   category: Types.ObjectId;
-  status: "live" | "upcoming" | "closed";
-  lotNumber: number;
   initialBidPrice: number;
   currentBidPrice: number;
-  startDateTime: Date;
-  endDateTime: Date;
+  startTime: Date;
+  endTime: Date;
+  status: "live" | "upcoming" | "closed";
+  lotNumber: number;
   winningBid?: Types.ObjectId;
   seller?: Types.ObjectId;
 }
@@ -22,6 +23,7 @@ export const flowerSchema = new Schema<FlowerDocument>({
   name: { type: String, required: true },
   image: { type: String, required: true },
   size: { type: Number, required: true },
+  description: { type: String, required: true },
   quantity: { type: String, required: true },
   category: { type: Schema.Types.ObjectId, ref: "Category", required: true },
   status: {
@@ -33,8 +35,8 @@ export const flowerSchema = new Schema<FlowerDocument>({
   lotNumber: { type: Number, required: true, unique: true },
   initialBidPrice: { type: Number, required: true },
   currentBidPrice: { type: Number, required: true },
-  startDateTime: { type: Date, required: true },
-  endDateTime: { type: Date, required: true },
+  startTime: { type: Date, required: true },
+  endTime: { type: Date, required: true },
   winningBid: { type: Schema.Types.ObjectId, ref: "Bid" },
   seller: { type: Schema.Types.ObjectId, ref: "User" },
 });

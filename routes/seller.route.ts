@@ -4,8 +4,7 @@ import { sellerOnly } from "../middleware/seller.only";
 import {
   addFlowerBySeller,
   deleteFlower,
-  getAllFlowers,
-  getFlower,
+  getFlowersBySellerId,
   updateFlower,
   updateSeller,
 } from "../controller/seller.controller";
@@ -19,9 +18,7 @@ sellerRouter.post("/add-flowers", addFlowerBySeller);
 
 sellerRouter.put("/flowers/:id", updateFlower);
 
-sellerRouter.get("/flowers/:id", getFlower);
-
-sellerRouter.get("/flowers", getAllFlowers);
+sellerRouter.get("/flowers", getFlowersBySellerId);
 
 sellerRouter.delete("/flowers/:id", deleteFlower);
 

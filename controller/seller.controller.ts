@@ -1,15 +1,16 @@
 import { Request, Response, NextFunction } from "express";
-import Flower from "../models/Flower";
+import Flower, { FlowerDocument } from "../models/Flower";
 import User from "../models/User";
 import { AuthenticatedRequest } from "../middleware/authenticator";
+import { FilterQuery } from "mongoose";
 
 export const addFlowerBySeller = async (
   req: AuthenticatedRequest,
   res: Response
 ) => {
   try {
-    const userId = req.user?._id;
-    const seller = await User.findById(userId);
+    const sellerId = req.user?._id;
+    const seller = await User.findById(sellerId);
 
     if (!seller || seller.role !== "seller") {
       return res.status(403).json({ error: "Only sellers can add flowers." });
@@ -19,29 +20,43 @@ export const addFlowerBySeller = async (
       name,
       image,
       size,
+      description,
       quantity,
       category,
-      status,
-      lotNumber,
       initialBidPrice,
-      currentBidPrice,
-      startDateTime,
-      endDateTime,
+      startTime,
+      endTime,
     } = req.body;
+
+    const now = new Date();
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
+
+    let status = "upcoming";
+    if (now >= startDate && now < endDate) {
+      status = "live";
+    } else if (now >= endDate) {
+      status = "closed";
+    }
+
+    // Generate lotNumber automatically: first flower gets 101, then increment
+    const lastFlower = await Flower.findOne().sort({ lotNumber: -1 });
+    const newLotNumber = lastFlower ? lastFlower.lotNumber + 1 : 1;
 
     const flower = new Flower({
       name,
       image,
       size,
       quantity,
+      description,
       category,
-      status,
-      lotNumber,
       initialBidPrice,
-      currentBidPrice,
-      startDateTime,
-      endDateTime,
-      seller: userId,
+      currentBidPrice: initialBidPrice,
+      startTime,
+      endTime,
+      seller: sellerId,
+      status,
+      lotNumber: newLotNumber,
     });
 
     await flower.save();
@@ -56,20 +71,35 @@ export const addFlowerBySeller = async (
  * Update a Flower by ID
  */
 export const updateFlower = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { id } = req.params;
-    const updatedData = req.body;
+    const sellerId = req.user?._id;
+    if (!sellerId) {
+      return res.status(401).json({ error: "Not authenticated." });
+    }
 
-    const updatedFlower = await Flower.findByIdAndUpdate(id, updatedData, {
-      new: true,
-    });
-    if (!updatedFlower) {
+    // Find the flower by id
+    const flower = await Flower.findById(id);
+    if (!flower) {
       return res.status(404).json({ error: "Flower not found." });
     }
+
+    // Check if the authenticated seller is the owner of the flower
+    if (flower.seller && flower.seller.toString() !== sellerId.toString()) {
+      return res
+        .status(403)
+        .json({ error: "Not authorized to update this flower." });
+    }
+
+    // Update the flower with the provided data
+    const updatedFlower = await Flower.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
+
     res.json({
       message: "Flower updated successfully.",
       flower: updatedFlower,
@@ -80,37 +110,24 @@ export const updateFlower = async (
 };
 
 /**
- * Get a single Flower by ID
- */
-export const getFlower = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const flower = await Flower.findById(id);
-    if (!flower) {
-      return res.status(404).json({ error: "Flower not found." });
-    }
-    res.json(flower);
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
  * Get all Flowers
  */
-export const getAllFlowers = async (
-  req: Request,
+export const getFlowersBySellerId = async (
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const flowers = await Flower.find({
+    const sellerId = req.user?._id;
+    const query: FilterQuery<FlowerDocument> = {
       status: { $in: ["live", "upcoming"] },
-    });
+    };
+
+    if (sellerId) {
+      query.seller = sellerId;
+    }
+
+    const flowers = await Flower.find(query);
     res.json(flowers);
   } catch (error) {
     next(error);
@@ -121,16 +138,32 @@ export const getAllFlowers = async (
  * Delete a Flower by ID
  */
 export const deleteFlower = async (
-  req: Request,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { id } = req.params;
-    const deletedFlower = await Flower.findByIdAndDelete(id);
-    if (!deletedFlower) {
+    const sellerId = req.user?._id;
+    if (!sellerId) {
+      return res.status(401).json({ error: "Not authenticated." });
+    }
+
+    // Retrieve the flower by its id
+    const flower = await Flower.findById(id);
+    if (!flower) {
       return res.status(404).json({ error: "Flower not found." });
     }
+
+    // Check if the authenticated seller is the owner of the flower
+    if (flower.seller && flower.seller.toString() !== sellerId.toString()) {
+      return res
+        .status(403)
+        .json({ error: "Not authorized to delete this flower." });
+    }
+
+    // Delete the flower if ownership is confirmed
+    await Flower.findByIdAndDelete(id);
     res.json({ message: "Flower deleted successfully." });
   } catch (error) {
     next(error);

@@ -18,6 +18,7 @@ export interface UserDocument extends Document {
   image?: string;
   biddingStatus: BiddingStatus[];
   favoriteFlowers: Types.ObjectId[];
+  flowers?: FlowerDocument[];
 }
 
 const biddingStatusSchema = new Schema<BiddingStatus>({
@@ -39,6 +40,7 @@ const userSchema = new Schema<UserDocument>({
   favoriteFlowers: [
     { type: Schema.Types.ObjectId, ref: "Flower", default: [] },
   ],
+  flowers: [{ type: Schema.Types.ObjectId, ref: "Flower", default: [] }],
 });
 
 const User = model<UserDocument>("user", userSchema);

@@ -67,7 +67,7 @@ export const getLiveFlowers = async (req: Request, res: Response) => {
 export const getUpcomingFlowers = async (req: Request, res: Response) => {
   try {
     // Upcoming flowers: scheduled to start in the future.
-    // You can adjust conditions, e.g., startDateTime is in the future.
+    // You can adjust conditions, e.g., startTime is in the future.
     const flowers = await Flower.find({
       status: "upcoming",
     });
@@ -97,7 +97,7 @@ export const getUpcomingFlowers = async (req: Request, res: Response) => {
 //     }
 
 //     // 2. Check if bidding has ended
-//     if (currentTime > flower.endDateTime) {
+//     if (currentTime > flower.endTime) {
 //       return res
 //         .status(400)
 //         .json({ error: "Bidding time has ended for this flower." });

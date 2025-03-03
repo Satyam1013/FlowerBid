@@ -16,7 +16,7 @@ export const initializeSocket = (io: Server) => {
         if (!flower) {
           return socket.emit("auctionError", { message: "Flower not found" });
         }
-        if (flower.startDateTime > new Date()) {
+        if (flower.startTime > new Date()) {
           flower.status = "live";
           await flower.save();
           io.emit("auctionStarted", flower);
@@ -56,7 +56,7 @@ export const initializeSocket = (io: Server) => {
           }
 
           // If bidding time has ended, update status and inform client.
-          if (new Date() > flower.endDateTime) {
+          if (new Date() > flower.endTime) {
             flower.status = "closed";
             await flower.save();
             io.emit("auctionStatusUpdated", flower);
@@ -104,7 +104,7 @@ export const initializeSocket = (io: Server) => {
           // Mark it as winning and update all other bids for this flower as not winning.
           savedBid.winningBid = true;
           await savedBid.save();
-          
+
           await Bid.updateMany(
             { flower: data.flowerId, _id: { $ne: savedBid._id } },
             { $set: { winningBid: false } }

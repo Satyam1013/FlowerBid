@@ -7,6 +7,21 @@ import Category from "../models/Category";
 /**
  * Create a new Category (Admin only)
  */
+export const getAllFlowers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const flowers = await Flower.find({
+      status: { $in: ["live", "upcoming"] },
+    });
+    res.json(flowers);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createCategory = async (req: Request, res: Response) => {
   try {
     const { name } = req.body;
@@ -44,7 +59,7 @@ export const determineWinner = async (req: Request, res: Response) => {
 
     // Check if the bidding time has ended
     const currentTime = new Date();
-    if (flower.status === "live" && currentTime < flower.endDateTime) {
+    if (flower.status === "live" && currentTime < flower.endTime) {
       return res.status(400).json({ error: "Bidding is still ongoing." });
     }
 
