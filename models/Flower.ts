@@ -5,7 +5,7 @@ export interface IFlower {
   image: string;
   size: number;
   quantity: string;
-  category: string;
+  category: Types.ObjectId;
   status: "live" | "upcoming" | "closed";
   lotNumber: number;
   initialBidPrice: number;
@@ -13,6 +13,7 @@ export interface IFlower {
   startDateTime: Date;
   endDateTime: Date;
   winningBid?: Types.ObjectId;
+  seller?: Types.ObjectId;
 }
 
 export interface FlowerDocument extends Document<Types.ObjectId>, IFlower {}
@@ -22,7 +23,7 @@ export const flowerSchema = new Schema<FlowerDocument>({
   image: { type: String, required: true },
   size: { type: Number, required: true },
   quantity: { type: String, required: true },
-  category: { type: String, required: true },
+  category: { type: Schema.Types.ObjectId, ref: "Category", required: true },
   status: {
     type: String,
     required: true,
@@ -35,8 +36,9 @@ export const flowerSchema = new Schema<FlowerDocument>({
   startDateTime: { type: Date, required: true },
   endDateTime: { type: Date, required: true },
   winningBid: { type: Schema.Types.ObjectId, ref: "Bid" },
+  seller: { type: Schema.Types.ObjectId, ref: "User" },
 });
 
-const Flower = model<FlowerDocument>("Flower", flowerSchema);
+const Flower = model<FlowerDocument>("flower", flowerSchema);
 
 export default Flower;

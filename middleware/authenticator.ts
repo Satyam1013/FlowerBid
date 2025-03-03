@@ -3,12 +3,12 @@ import jwt, { JwtPayload, VerifyErrors } from "jsonwebtoken";
 import { Socket } from "socket.io";
 
 export interface AuthenticatedRequest extends Request {
-  user?: { _id: string; role: "admin" | "user" };
+  user?: { _id: string; role: "admin" | "user" | "seller" };
 }
 
 interface MyJwtPayload extends JwtPayload {
   id: string;
-  role: "admin" | "user";
+  role: "admin" | "user" | "seller";
 }
 
 export const authenticator = (

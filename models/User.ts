@@ -12,7 +12,7 @@ export interface UserDocument extends Document {
   email: string;
   password: string;
   mobile: number;
-  role: "user" | "admin";
+  role: "user" | "admin" | "seller";
   balance?: number;
   address?: string;
   image?: string;
@@ -31,7 +31,7 @@ const userSchema = new Schema<UserDocument>({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   mobile: { type: Number, required: true, unique: true },
-  role: { type: String, enum: ["user", "admin"], default: "user" },
+  role: { type: String, enum: ["user", "admin", "seller"], default: "user" },
   balance: { type: Number, default: 0 },
   address: { type: String },
   image: { type: String },

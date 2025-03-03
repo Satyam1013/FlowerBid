@@ -13,6 +13,7 @@ import adminRouter from "./routes/admin.route";
 import authRouter from "./routes/auth.route";
 import flowerRouter from "./routes/flower.route";
 import userRouter from "./routes/user.route";
+import sellerRouter from "./routes/seller.route";
 
 import { initializeSocket } from "./socket.handler";
 
@@ -22,6 +23,7 @@ app.use(cors());
 
 app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/seller", sellerRouter);
 app.use("/api/user", authenticator, userRouter);
 app.use("/api/flowers", flowerRouter);
 
@@ -30,7 +32,7 @@ const PORT = process.env.PORT || 8080;
 
 const io = new SocketIOServer(server, {
   cors: {
-    origin: "*", // Adjust this as needed
+    origin: "*",
   },
 });
 

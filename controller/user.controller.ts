@@ -51,6 +51,18 @@ export const updateUserDetails = async (
       return res.status(401).json({ error: "Not authenticated" });
     }
 
+    // Find the user and ensure they have the 'user' role
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "user not found" });
+    }
+
+    if (user.role !== "user") {
+      return res
+        .status(403)
+        .json({ error: "Only users can update their details." });
+    }
+
     const { username, address, image, mobile } = req.body;
 
     // Update the user's details

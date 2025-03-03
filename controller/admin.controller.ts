@@ -2,166 +2,36 @@ import { Request, Response, NextFunction } from "express";
 import Flower from "../models/Flower";
 import Bid from "../models/Bid";
 import User from "../models/User";
-const { io } = require("../index");
+import Category from "../models/Category";
 
-export const addFlower = async (req: Request, res: Response) => {
+/**
+ * Create a new Category (Admin only)
+ */
+export const createCategory = async (req: Request, res: Response) => {
   try {
-    const {
-      name,
-      image,
-      size,
-      quantity,
-      category,
-      status,
-      lotNumber,
-      initialBidPrice,
-      currentBidPrice,
-      startDateTime,
-      endDateTime,
-    } = req.body;
+    const { name } = req.body;
+    if (!name)
+      return res.status(400).json({ error: "Category name is required." });
 
-    // Create a new Flower document
-    const flower = new Flower({
-      name,
-      image,
-      size,
-      quantity,
-      category,
-      status,
-      lotNumber,
-      initialBidPrice,
-      currentBidPrice,
-      startDateTime,
-      endDateTime,
-    });
+    const existingCategory = await Category.findOne({ name });
+    if (existingCategory)
+      return res.status(400).json({ error: "Category already exists." });
 
-    await flower.save();
+    const category = new Category({ name });
+    await category.save();
 
-    // Schedule winner selection at endDateTime
-    const timeUntilEnd = new Date(endDateTime).getTime() - Date.now();
-    setTimeout(async () => {
-      try {
-        // Find the highest bid for this flower
-        const highestBid = await Bid.findOne({ flower: flower._id })
-          .sort({ amount: -1, bidTime: 1 })
-          .populate("user");
-
-        if (highestBid) {
-          flower.winningBid = highestBid._id;
-          await flower.save();
-
-          // Notify all connected clients about the winner
-          io.emit("bidEnded", {
-            flowerId: flower._id,
-            winner: highestBid.user,
-            amount: highestBid.amount,
-          });
-
-          console.log(
-            `Winner announced for ${flower.name}: ` +
-              `User ${highestBid.user} with ₹${highestBid.amount}`
-          );
-        }
-      } catch (err) {
-        console.error("Error determining winner:", err);
-      }
-    }, timeUntilEnd);
-
-    res.status(201).json({ message: "Flower added successfully.", flower });
+    res
+      .status(201)
+      .json({ message: "Category created successfully.", category });
   } catch (error) {
-    console.error("Error adding flower:", error);
+    console.error("Error creating category:", error);
     res.status(500).json({ error: "Server error." });
   }
 };
 
 /**
- * Update a Flower by ID
- */
-export const updateFlower = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const updatedData = req.body;
-
-    const updatedFlower = await Flower.findByIdAndUpdate(id, updatedData, {
-      new: true,
-    });
-    if (!updatedFlower) {
-      return res.status(404).json({ error: "Flower not found." });
-    }
-    res.json({
-      message: "Flower updated successfully.",
-      flower: updatedFlower,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Get a single Flower by ID
- */
-export const getFlower = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const flower = await Flower.findById(id);
-    if (!flower) {
-      return res.status(404).json({ error: "Flower not found." });
-    }
-    res.json(flower);
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Get all Flowers
- */
-export const getAllFlowers = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const flowers = await Flower.find({
-      status: { $in: ["live", "upcoming"] },
-    });
-    res.json(flowers);
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
- * Delete a Flower by ID
- */
-export const deleteFlower = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const deletedFlower = await Flower.findByIdAndDelete(id);
-    if (!deletedFlower) {
-      return res.status(404).json({ error: "Flower not found." });
-    }
-    res.json({ message: "Flower deleted successfully." });
-  } catch (error) {
-    next(error);
-  }
-};
-
-/**
  * Manually Determine the Winner for a Flower
- */
+ **/
 export const determineWinner = async (req: Request, res: Response) => {
   try {
     const { flowerId } = req.params;
@@ -209,6 +79,9 @@ export const determineWinner = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * User CRUD Operations
+ */
 export const getUsers = async (
   req: Request,
   res: Response,
@@ -229,12 +102,68 @@ export const deleteUser = async (
 ) => {
   try {
     const { id } = req.params;
-    const deletedUser = await User.findByIdAndDelete(id);
+    const deletedUser = await User.findOneAndDelete({ _id: id, role: "user" });
     if (!deletedUser) {
       return res.status(404).json({ error: "User not found." });
     }
     res.json({ message: "User deleted successfully." });
   } catch (error) {
     next(error);
+  }
+};
+
+/**
+ * Seller CRUD Operations
+ */
+export const createSeller = async (req: Request, res: Response) => {
+  try {
+    const { username, email, password, mobile, address, image } = req.body;
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser)
+      return res.status(400).json({ error: "Email already in use." });
+
+    const seller = new User({
+      username,
+      email,
+      password,
+      mobile,
+      role: "seller",
+      address,
+      image,
+    });
+
+    await seller.save();
+    res.status(201).json({ message: "Seller created successfully.", seller });
+  } catch (error) {
+    console.error("Error creating seller:", error);
+    res.status(500).json({ error: "Server error." });
+  }
+};
+
+export const getSellers = async (req: Request, res: Response) => {
+  try {
+    const sellers = await User.find({ role: "seller" });
+    res.json(sellers);
+  } catch (error) {
+    console.error("Error fetching sellers:", error);
+    res.status(500).json({ error: "Server error." });
+  }
+};
+
+export const deleteSeller = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const deletedSeller = await User.findOneAndDelete({
+      _id: id,
+      role: "seller",
+    });
+    if (!deletedSeller)
+      return res.status(404).json({ error: "Seller not found." });
+
+    res.json({ message: "Seller deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting seller:", error);
+    res.status(500).json({ error: "Server error." });
   }
 };
