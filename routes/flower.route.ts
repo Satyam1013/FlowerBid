@@ -19,16 +19,16 @@ flowerRouter.get("/live", getLiveFlowers);
 
 flowerRouter.get("/upcoming", getUpcomingFlowers);
 
+flowerRouter.get("/category", getFlowersGroupedByCategory);
+
 flowerRouter.get("/favorites", authenticator, getFavoriteFlowers);
 
 flowerRouter.post("/:flowerId/add-favorite", authenticator, addFavoriteFlower);
 
 flowerRouter.get(
-  ":/flowerId/delete-favorite",
+  "/:flowerId/delete-favorite",
   authenticator,
   removeFavoriteFlower
 );
-
-flowerRouter.get("/category", getFlowersGroupedByCategory);
 
 export default flowerRouter;
