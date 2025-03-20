@@ -3,6 +3,7 @@ import Flower, { FlowerDocument, IFlower } from "../models/Flower";
 import User from "../models/User";
 import { FilterQuery } from "mongoose";
 import mongoose from "mongoose";
+import Category from "../models/Category";
 
 interface AuthenticatedRequest extends Request {
   user?: { _id: string };
@@ -14,6 +15,8 @@ export const getAvailableFlowers = async (
   next: NextFunction
 ) => {
   try {
+    const currentTime = new Date();
+
     const query: FilterQuery<IFlower> = {
       status: { $in: ["live", "upcoming"] },
     };
@@ -24,7 +27,6 @@ export const getAvailableFlowers = async (
       query.name = { $regex: new RegExp(name as string, "i") };
     }
 
-    // If 'category' is provided, support multiple categories (comma-separated).
     if (category) {
       const categories = (category as string)
         .split(",")
@@ -32,21 +34,38 @@ export const getAvailableFlowers = async (
       query.category = { $in: categories };
     }
 
-    // If minPrice or maxPrice is provided, filter by initialBidPrice.
     if (minPrice || maxPrice) {
       query.initialBidPrice = {};
       if (minPrice) query.initialBidPrice.$gte = Number(minPrice);
       if (maxPrice) query.initialBidPrice.$lte = Number(maxPrice);
     }
 
-    // Build sort options based on sort query parameter.
     const sortOptions: Record<string, 1 | -1> = {};
     if (sort) {
       sortOptions.initialBidPrice = sort === "asc" ? 1 : -1;
     }
 
+    // Fetch all matching flowers
     const flowers = await Flower.find(query).sort(sortOptions);
-    res.json(flowers);
+
+    const updatedFlowers = await Promise.all(
+      flowers.map(async (flower) => {
+        if (currentTime >= flower.endTime) {
+          // If the current time is past the endTime, set status to "closed"
+          flower.status = "closed";
+          await flower.save();
+        }
+        return flower;
+      })
+    );
+
+    // Filter only available flowers (startTime <= currentTime < endTime)
+    const availableFlowers = updatedFlowers.filter(
+      (flower) =>
+        flower.startTime <= currentTime && currentTime < flower.endTime
+    );
+
+    res.json(availableFlowers);
   } catch (error) {
     next(error);
   }
@@ -282,29 +301,19 @@ export const getFlowersGroupedByCategory = async (
   res: Response
 ) => {
   try {
-    const categories = [
-      "Romantic",
-      "Festive",
-      "Elegant",
-      "Exotic",
-      "Traditional",
-      "Modern",
-    ];
+    // Fetch all categories with their ObjectIds
+    const categories = await Category.find({}, { name: 1 });
 
-    // Define a properly typed object
     const groupedFlowers: Record<string, FlowerDocument[] | string> = {};
 
     await Promise.all(
       categories.map(async (category) => {
-        const flowers = await Flower.find({
-          category: { $regex: new RegExp(`^${category}$`, "i") },
-        }).limit(5);
+        const flowers = await Flower.find({ category: category._id }).limit(5);
 
-        // Store results in groupedFlowers
-        groupedFlowers[category] =
+        groupedFlowers[category.name] =
           flowers.length > 0
             ? flowers
-            : `No flowers found for category ${category}.`;
+            : `No flowers found for category ${category.name}.`;
       })
     );
 
