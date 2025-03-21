@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import User from "../models/User";
+import User, { UserRole } from "../models/User";
 
 interface AuthenticatedRequest extends Request {
   user?: { _id: string };
@@ -57,7 +57,7 @@ export const updateUserDetails = async (
       return res.status(404).json({ error: "user not found" });
     }
 
-    if (user.role !== "user") {
+    if (user.role !== UserRole.USER) {
       return res
         .status(403)
         .json({ error: "Only users can update their details." });

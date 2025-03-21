@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import Flower, { FlowerDocument } from "../models/Flower";
 import Category from "../models/Category";
-import User from "../models/User";
+import User, { UserRole } from "../models/User";
 import { AuthenticatedRequest } from "../middleware/authenticator";
 import { FilterQuery } from "mongoose";
 
@@ -13,7 +13,7 @@ export const addFlowerBySeller = async (
     const sellerId = req.user?._id;
     const seller = await User.findById(sellerId);
 
-    if (!seller || seller.role !== "seller") {
+    if (!seller || seller.role !== UserRole.SELLER) {
       return res.status(403).json({ error: "Only sellers can add flowers." });
     }
 
@@ -197,7 +197,7 @@ export const updateSeller = async (
       return res.status(404).json({ error: "Seller not found" });
     }
 
-    if (seller.role !== "seller") {
+    if (seller.role !==   UserRole.SELLER) {
       return res
         .status(403)
         .json({ error: "Only sellers can update their details." });

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import Flower from "../models/Flower";
 import Bid from "../models/Bid";
-import User from "../models/User";
+import User, { UserRole } from "../models/User";
 import Category from "../models/Category";
 
 /**
@@ -127,7 +127,10 @@ export const deleteUser = async (
 ) => {
   try {
     const { id } = req.params;
-    const deletedUser = await User.findOneAndDelete({ _id: id, role: "user" });
+    const deletedUser = await User.findOneAndDelete({
+      _id: id,
+      role: UserRole.USER,
+    });
     if (!deletedUser) {
       return res.status(404).json({ error: "User not found." });
     }
@@ -153,7 +156,7 @@ export const createSeller = async (req: Request, res: Response) => {
       email,
       password,
       mobile,
-      role: "seller",
+      role: UserRole.SELLER,
       address,
       image,
     });
@@ -168,7 +171,7 @@ export const createSeller = async (req: Request, res: Response) => {
 
 export const getSellers = async (req: Request, res: Response) => {
   try {
-    const sellers = await User.find({ role: "seller" });
+    const sellers = await User.find({ role: UserRole.SELLER });
     res.json(sellers);
   } catch (error) {
     console.error("Error fetching sellers:", error);
@@ -181,7 +184,7 @@ export const deleteSeller = async (req: Request, res: Response) => {
     const { id } = req.params;
     const deletedSeller = await User.findOneAndDelete({
       _id: id,
-      role: "seller",
+      role: UserRole.SELLER,
     });
     if (!deletedSeller)
       return res.status(404).json({ error: "Seller not found." });

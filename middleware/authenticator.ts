@@ -1,14 +1,15 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload, VerifyErrors } from "jsonwebtoken";
 import { Socket } from "socket.io";
+import { UserRole } from "../models/User";
 
 export interface AuthenticatedRequest extends Request {
-  user?: { _id: string; role: "admin" | "user" | "seller" };
+  user?: { _id: string; role: UserRole };
 }
 
 interface MyJwtPayload extends JwtPayload {
   id: string;
-  role: "admin" | "user" | "seller";
+  role: UserRole;
 }
 
 export const authenticator = (

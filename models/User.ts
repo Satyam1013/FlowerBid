@@ -1,6 +1,12 @@
 import { Schema, model, Document, Types } from "mongoose";
 import { FlowerDocument, flowerSchema } from "./Flower";
 
+export enum UserRole {
+  USER = "user",
+  ADMIN = "admin",
+  SELLER = "seller",
+}
+
 export interface BiddingStatus {
   flower: FlowerDocument;
   bidAmount: number;
@@ -12,7 +18,7 @@ export interface UserDocument extends Document {
   email: string;
   password: string;
   mobile: number;
-  role: "user" | "admin" | "seller";
+  role: UserRole;
   balance?: number;
   address?: string;
   image?: string;
@@ -32,7 +38,7 @@ const userSchema = new Schema<UserDocument>({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   mobile: { type: Number, required: true, unique: true },
-  role: { type: String, enum: ["user", "admin", "seller"], default: "user" },
+  role: { type: String, enum: Object.values(UserRole), default: UserRole.USER },
   balance: { type: Number, default: 0 },
   address: { type: String },
   image: { type: String },
