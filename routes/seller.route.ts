@@ -4,6 +4,7 @@ import { sellerOnly } from "../middleware/seller.only";
 import {
   addFlowerBySeller,
   deleteFlower,
+  getCategories,
   getFlowersBySellerId,
   updateFlower,
   updateSeller,
@@ -15,6 +16,8 @@ sellerRouter.use(authenticator, sellerOnly);
 
 // Flower management routes
 sellerRouter.post("/add-flowers", addFlowerBySeller);
+
+sellerRouter.get("/categories", getCategories);
 
 sellerRouter.put("/flowers/:id", updateFlower);
 

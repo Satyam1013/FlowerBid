@@ -12,7 +12,7 @@ export interface IFlower {
   size: number;
   quantity: string;
   description?: string;
-  category: Types.ObjectId;
+  category: string;
   initialBidPrice: number;
   currentBidPrice: number;
   startTime: Date;

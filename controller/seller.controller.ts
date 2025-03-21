@@ -58,7 +58,7 @@ export const addFlowerBySeller = async (
       size,
       quantity,
       description,
-      category: existingCategory._id,
+      category: existingCategory.name,
       initialBidPrice,
       currentBidPrice: initialBidPrice,
       startTime,
@@ -73,6 +73,16 @@ export const addFlowerBySeller = async (
   } catch (error) {
     console.error("Error adding flower:", error);
     res.status(500).json({ error: "Server error." });
+  }
+};
+
+export const getCategories = async (req: Request, res: Response) => {
+  try {
+    const categories = await Category.find();
+    res.status(200).json(categories);
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    res.status(500).json({ error: "Server error" });
   }
 };
 
@@ -128,15 +138,7 @@ export const getFlowersBySellerId = async (
 ) => {
   try {
     const sellerId = req.user?._id;
-    const query: FilterQuery<FlowerDocument> = {
-      status: { $in: [FlowerStatus.LIVE, FlowerStatus.UPCOMING] },
-    };
-
-    if (sellerId) {
-      query.seller = sellerId;
-    }
-
-    const flowers = await Flower.find(query);
+    const flowers = await Flower.find({ seller: sellerId });
     res.json(flowers);
   } catch (error) {
     next(error);
@@ -154,24 +156,19 @@ export const deleteFlower = async (
   try {
     const { id } = req.params;
     const sellerId = req.user?._id;
+
     if (!sellerId) {
       return res.status(401).json({ error: "Not authenticated." });
     }
 
-    // Retrieve the flower by its id
-    const flower = await Flower.findById(id);
+    const flower = await Flower.findOne({ _id: id, seller: sellerId });
+
     if (!flower) {
-      return res.status(404).json({ error: "Flower not found." });
+      return res.status(404).json({
+        error: "Flower not found or you are not authorized to delete it.",
+      });
     }
 
-    // Check if the authenticated seller is the owner of the flower
-    if (flower.seller && flower.seller.toString() !== sellerId.toString()) {
-      return res
-        .status(403)
-        .json({ error: "Not authorized to delete this flower." });
-    }
-
-    // Delete the flower if ownership is confirmed
     await Flower.findByIdAndDelete(id);
     res.json({ message: "Flower deleted successfully." });
   } catch (error) {

@@ -92,6 +92,8 @@ export const login = async (
         id: user._id,
         role: user.role,
         username: user.username,
+        email: user.email,
+        mobile: user.mobile,
       },
     });
   } catch (error) {

@@ -7,7 +7,7 @@ export const flowerSchema = new Schema<FlowerDocument>({
   size: { type: Number, required: true },
   description: { type: String, required: true },
   quantity: { type: String, required: true },
-  category: { type: Schema.Types.ObjectId, ref: "Category", required: true },
+  category: { type: String, required: true },
   status: {
     type: String,
     required: true,

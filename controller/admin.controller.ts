@@ -15,9 +15,7 @@ export const getAllFlowers = async (
   next: NextFunction
 ) => {
   try {
-    const flowers = await Flower.find({
-      status: { $in: [FlowerStatus.LIVE, FlowerStatus.UPCOMING] },
-    });
+    const flowers = await Flower.find();
     res.json(flowers);
   } catch (error) {
     next(error);
