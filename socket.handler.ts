@@ -3,6 +3,7 @@ import Flower from "./models/Flower";
 import { socketAuthenticator } from "./middleware/authenticator";
 import Bid from "./models/Bid";
 import User from "./models/User";
+import { FlowerStatus } from "./types/flower.types";
 
 export const initializeSocket = (io: Server) => {
   // Use the socket authentication middleware
@@ -17,7 +18,7 @@ export const initializeSocket = (io: Server) => {
           return socket.emit("auctionError", { message: "Flower not found" });
         }
         if (flower.startTime > new Date()) {
-          flower.status = "live";
+          flower.status = FlowerStatus.LIVE;
           await flower.save();
           io.emit("auctionStarted", flower);
         }
@@ -57,7 +58,7 @@ export const initializeSocket = (io: Server) => {
 
           // If bidding time has ended, update status and inform client.
           if (new Date() > flower.endTime) {
-            flower.status = "closed";
+            flower.status = FlowerStatus.CLOSED;
             await flower.save();
             io.emit("auctionStatusUpdated", flower);
             return socket.emit("bidError", {
@@ -70,7 +71,7 @@ export const initializeSocket = (io: Server) => {
           const updatedFlower = await Flower.findOneAndUpdate(
             {
               _id: data.flowerId,
-              status: "live",
+              status: FlowerStatus.LIVE,
               currentBidPrice: { $lt: data.bidPrice },
             },
             { $set: { currentBidPrice: data.bidPrice } },

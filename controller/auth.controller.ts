@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcrypt";
 import * as yup from "yup";
 import jwt from "jsonwebtoken";
-import User, { UserDocument } from "../models/User";
+import User from "../models/User";
 
 const userValidationSchema = yup.object({
   username: yup
@@ -40,7 +40,7 @@ export const signup = async (
       return;
     }
 
-    const newUser: UserDocument = new User({
+    const newUser = new User({
       username,
       email,
       password: await bcrypt.hash(password, 10),

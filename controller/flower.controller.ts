@@ -1,9 +1,10 @@
 import { NextFunction, Request, Response } from "express";
-import Flower, { FlowerDocument, IFlower } from "../models/Flower";
+import Flower from "../models/Flower";
 import User from "../models/User";
 import { FilterQuery } from "mongoose";
 import mongoose from "mongoose";
 import Category from "../models/Category";
+import { FlowerDocument, FlowerStatus, IFlower } from "../types/flower.types";
 
 interface AuthenticatedRequest extends Request {
   user?: { _id: string };
@@ -18,7 +19,7 @@ export const getAvailableFlowers = async (
     const currentTime = new Date();
 
     const query: FilterQuery<IFlower> = {
-      status: { $in: ["live", "upcoming"] },
+      status: { $in: [FlowerStatus.LIVE, FlowerStatus.UPCOMING] },
     };
 
     const { name, category, minPrice, maxPrice, sort } = req.query;
@@ -52,7 +53,7 @@ export const getAvailableFlowers = async (
       flowers.map(async (flower) => {
         if (currentTime >= flower.endTime) {
           // If the current time is past the endTime, set status to "closed"
-          flower.status = "closed";
+          flower.status = FlowerStatus.CLOSED;
           await flower.save();
         }
         return flower;
@@ -74,7 +75,7 @@ export const getAvailableFlowers = async (
 export const getLiveFlowers = async (req: Request, res: Response) => {
   try {
     const flowers = await Flower.find({
-      status: "live",
+      status: FlowerStatus.LIVE,
     });
     res.json(flowers);
   } catch (error) {
@@ -88,7 +89,7 @@ export const getUpcomingFlowers = async (req: Request, res: Response) => {
     // Upcoming flowers: scheduled to start in the future.
     // You can adjust conditions, e.g., startTime is in the future.
     const flowers = await Flower.find({
-      status: "upcoming",
+      status: FlowerStatus.UPCOMING,
     });
     res.json(flowers);
   } catch (error) {

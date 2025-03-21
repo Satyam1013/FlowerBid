@@ -1,23 +1,5 @@
-import { Schema, model, Document, Types } from "mongoose";
-
-export interface IFlower {
-  name: string;
-  image: string;
-  size: number;
-  quantity: string;
-  description?: string;
-  category: Types.ObjectId;
-  initialBidPrice: number;
-  currentBidPrice: number;
-  startTime: Date;
-  endTime: Date;
-  status: "live" | "upcoming" | "closed";
-  lotNumber: number;
-  winningBid?: Types.ObjectId;
-  seller?: Types.ObjectId;
-}
-
-export interface FlowerDocument extends Document<Types.ObjectId>, IFlower {}
+import { Schema, model } from "mongoose";
+import { FlowerDocument, FlowerStatus } from "../types/flower.types";
 
 export const flowerSchema = new Schema<FlowerDocument>({
   name: { type: String, required: true },
@@ -29,8 +11,8 @@ export const flowerSchema = new Schema<FlowerDocument>({
   status: {
     type: String,
     required: true,
-    enum: ["live", "upcoming", "closed"],
-    default: "upcoming",
+    enum: Object.values(FlowerStatus),
+    default: FlowerStatus.UPCOMING,
   },
   lotNumber: { type: Number, required: true, unique: true },
   initialBidPrice: { type: Number, required: true },

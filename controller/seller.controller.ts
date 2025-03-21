@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from "express";
-import Flower, { FlowerDocument } from "../models/Flower";
+import Flower from "../models/Flower";
 import Category from "../models/Category";
-import User, { UserRole } from "../models/User";
+import User from "../models/User";
 import { AuthenticatedRequest } from "../middleware/authenticator";
 import { FilterQuery } from "mongoose";
+import { UserRole } from "../types/user.types";
+import { FlowerDocument, FlowerStatus } from "../types/flower.types";
 
 export const addFlowerBySeller = async (
   req: AuthenticatedRequest,
@@ -39,11 +41,11 @@ export const addFlowerBySeller = async (
     const startDate = new Date(startTime);
     const endDate = new Date(endTime);
 
-    let status = "upcoming";
+    let status = FlowerStatus.UPCOMING;
     if (now >= startDate && now < endDate) {
-      status = "live";
+      status = FlowerStatus.LIVE;
     } else if (now >= endDate) {
-      status = "closed";
+      status = FlowerStatus.CLOSED;
     }
 
     // Generate lotNumber automatically
@@ -127,7 +129,7 @@ export const getFlowersBySellerId = async (
   try {
     const sellerId = req.user?._id;
     const query: FilterQuery<FlowerDocument> = {
-      status: { $in: ["live", "upcoming"] },
+      status: { $in: [FlowerStatus.LIVE, FlowerStatus.UPCOMING] },
     };
 
     if (sellerId) {
@@ -197,7 +199,7 @@ export const updateSeller = async (
       return res.status(404).json({ error: "Seller not found" });
     }
 
-    if (seller.role !==   UserRole.SELLER) {
+    if (seller.role !== UserRole.SELLER) {
       return res
         .status(403)
         .json({ error: "Only sellers can update their details." });

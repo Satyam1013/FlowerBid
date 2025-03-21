@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import User, { UserRole } from "../models/User";
+import User from "../models/User";
+import { UserRole } from "../types/user.types";
 
 interface AuthenticatedRequest extends Request {
   user?: { _id: string };

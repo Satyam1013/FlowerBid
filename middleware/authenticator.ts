@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload, VerifyErrors } from "jsonwebtoken";
 import { Socket } from "socket.io";
-import { UserRole } from "../models/User";
+import { UserRole } from "../types/user.types";
 
 export interface AuthenticatedRequest extends Request {
   user?: { _id: string; role: UserRole };

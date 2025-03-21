@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import Flower from "../models/Flower";
 import Bid from "../models/Bid";
-import User, { UserRole } from "../models/User";
+import User from "../models/User";
 import Category from "../models/Category";
+import { UserRole } from "../types/user.types";
+import { FlowerStatus } from "../types/flower.types";
 
 /**
  * Create a new Category (Admin only)
@@ -14,7 +16,7 @@ export const getAllFlowers = async (
 ) => {
   try {
     const flowers = await Flower.find({
-      status: { $in: ["live", "upcoming"] },
+      status: { $in: [FlowerStatus.LIVE, FlowerStatus.UPCOMING] },
     });
     res.json(flowers);
   } catch (error) {
@@ -69,7 +71,7 @@ export const determineWinner = async (req: Request, res: Response) => {
 
     // Check if the bidding time has ended
     const currentTime = new Date();
-    if (flower.status === "live" && currentTime < flower.endTime) {
+    if (flower.status === FlowerStatus.LIVE && currentTime < flower.endTime) {
       return res.status(400).json({ error: "Bidding is still ongoing." });
     }
 
@@ -86,7 +88,7 @@ export const determineWinner = async (req: Request, res: Response) => {
 
     // Update the flower document with the winning bid and update status
     flower.winningBid = highestBid._id;
-    flower.status = "closed"; // mark the auction as closed
+    flower.status = FlowerStatus.CLOSED;
     await flower.save();
 
     return res.json({
