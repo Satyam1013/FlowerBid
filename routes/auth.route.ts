@@ -1,10 +1,22 @@
 import { Router } from "express";
-import { signup, login } from "../controller/auth.controller";
+import {
+  userSignup,
+  userLogin,
+  sellerSignup,
+  sellerLogin,
+  adminLogin,
+} from "../controller/auth.controller";
 
 const authRouter = Router();
 
-authRouter.post("/signup", signup);
+authRouter.post("/user/signup", userSignup);
 
-authRouter.post("/login", login);
+authRouter.post("/user/login", userLogin);
+
+authRouter.post("/seller/signup", sellerSignup);
+
+authRouter.post("/seller/login", sellerLogin);
+
+authRouter.post("/admin/login", adminLogin);
 
 export default authRouter;

@@ -5,6 +5,7 @@ import User from "../models/User";
 import Category from "../models/Category";
 import { UserRole } from "../types/user.types";
 import { FlowerStatus } from "../types/flower.types";
+import Seller from "../models/Seller";
 
 /**
  * Create a new Category (Admin only)
@@ -113,7 +114,7 @@ export const getUsers = async (
   next: NextFunction
 ) => {
   try {
-    const users = await User.find();
+    const users = await User.find({ role: UserRole.USER });
     res.json(users);
   } catch (error) {
     next(error);
@@ -141,37 +142,42 @@ export const deleteUser = async (
 };
 
 /**
- * Seller CRUD Operations
+ * Create a new seller account
  */
 export const createSeller = async (req: Request, res: Response) => {
   try {
     const { username, email, password, mobile, address, image } = req.body;
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser)
+    // Check if the seller already exists
+    const existingSeller = await Seller.findOne({ email });
+    if (existingSeller) {
       return res.status(400).json({ error: "Email already in use." });
+    }
 
-    const seller = new User({
+    const newSeller = new Seller({
       username,
       email,
       password,
       mobile,
       role: UserRole.SELLER,
-      address,
-      image,
     });
 
-    await seller.save();
-    res.status(201).json({ message: "Seller created successfully.", seller });
+    await newSeller.save();
+    res
+      .status(201)
+      .json({ message: "Seller created successfully.", seller: newSeller });
   } catch (error) {
     console.error("Error creating seller:", error);
     res.status(500).json({ error: "Server error." });
   }
 };
 
+/**
+ * Fetch all sellers
+ */
 export const getSellers = async (req: Request, res: Response) => {
   try {
-    const sellers = await User.find({ role: UserRole.SELLER });
+    const sellers = await Seller.find();
     res.json(sellers);
   } catch (error) {
     console.error("Error fetching sellers:", error);
@@ -179,15 +185,17 @@ export const getSellers = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Delete a seller by ID
+ */
 export const deleteSeller = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const deletedSeller = await User.findOneAndDelete({
-      _id: id,
-      role: UserRole.SELLER,
-    });
-    if (!deletedSeller)
+    const deletedSeller = await Seller.findByIdAndDelete(id);
+
+    if (!deletedSeller) {
       return res.status(404).json({ error: "Seller not found." });
+    }
 
     res.json({ message: "Seller deleted successfully." });
   } catch (error) {

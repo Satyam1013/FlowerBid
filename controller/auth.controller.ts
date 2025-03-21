@@ -3,6 +3,9 @@ import bcrypt from "bcrypt";
 import * as yup from "yup";
 import jwt from "jsonwebtoken";
 import User from "../models/User";
+import Seller from "../models/Seller";
+import Admin from "../models/Admin";
+import { UserRole } from "../types/user.types";
 
 const userValidationSchema = yup.object({
   username: yup
@@ -23,7 +26,7 @@ const userValidationSchema = yup.object({
     .required("Mobile number is required"),
 });
 
-export const signup = async (
+export const userSignup = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -59,7 +62,7 @@ export const signup = async (
   }
 };
 
-export const login = async (
+export const userLogin = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -98,6 +101,96 @@ export const login = async (
     });
   } catch (error) {
     console.error("Login error:", error);
+    next(error);
+  }
+};
+
+const sellerValidationSchema = yup.object({
+  username: yup.string().min(3).required(),
+  email: yup.string().email().required(),
+  password: yup.string().min(6).required(),
+  mobile: yup
+    .string()
+    .matches(/^\d{10}$/, "Mobile number must be 10 digits")
+    .required(),
+});
+
+export const sellerSignup = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const validatedData = await sellerValidationSchema.validate(req.body, {
+      abortEarly: false,
+    });
+
+    const { username, email, password, mobile } = validatedData;
+    const existingSeller = await Seller.findOne({ email });
+    if (existingSeller)
+      return res.status(400).json({ error: "Seller already exists." });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newSeller = new Seller({
+      username,
+      email,
+      password: hashedPassword,
+      mobile,
+    });
+    await newSeller.save();
+
+    res.status(201).json({ message: "Seller created successfully." });
+  } catch (error) {
+    res.status(400).json({ errors: error });
+  }
+};
+
+export const sellerLogin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email, password } = req.body;
+    const seller = await Seller.findOne({ email });
+
+    if (!seller || !(await bcrypt.compare(password, seller.password))) {
+      return res.status(400).json({ error: "Invalid credentials." });
+    }
+
+    const token = jwt.sign(
+      { id: seller._id, role: UserRole.SELLER },
+      process.env.JWT_SECRET!,
+      { expiresIn: "1h" }
+    );
+
+    res.json({ message: "Login successful", token, seller });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const adminLogin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email, password } = req.body;
+    const admin = await Admin.findOne({ email });
+
+    if (!admin || !(await bcrypt.compare(password, admin.password))) {
+      return res.status(400).json({ error: "Invalid credentials." });
+    }
+
+    const token = jwt.sign(
+      { id: admin._id, role: UserRole.ADMIN },
+      process.env.JWT_SECRET!,
+      { expiresIn: "1h" }
+    );
+
+    res.json({ message: "Login successful", token, admin });
+  } catch (error) {
     next(error);
   }
 };

@@ -1,21 +1,22 @@
 import { Request, Response, NextFunction } from "express";
 import Flower from "../models/Flower";
 import Category from "../models/Category";
-import User from "../models/User";
+import Seller from "../models/Seller";
 import { AuthenticatedRequest } from "../middleware/authenticator";
-import { FilterQuery } from "mongoose";
-import { UserRole } from "../types/user.types";
-import { FlowerDocument, FlowerStatus } from "../types/flower.types";
+import { FlowerStatus } from "../types/flower.types";
 
+/**
+ * Add a new flower by a seller
+ */
 export const addFlowerBySeller = async (
   req: AuthenticatedRequest,
   res: Response
 ) => {
   try {
     const sellerId = req.user?._id;
-    const seller = await User.findById(sellerId);
+    const seller = await Seller.findById(sellerId);
 
-    if (!seller || seller.role !== UserRole.SELLER) {
+    if (!seller) {
       return res.status(403).json({ error: "Only sellers can add flowers." });
     }
 
@@ -76,6 +77,9 @@ export const addFlowerBySeller = async (
   }
 };
 
+/**
+ * Fetch all categories
+ */
 export const getCategories = async (req: Request, res: Response) => {
   try {
     const categories = await Category.find();
@@ -87,7 +91,7 @@ export const getCategories = async (req: Request, res: Response) => {
 };
 
 /**
- * Update a Flower by ID
+ * Update a flower by ID (only by the seller who owns it)
  */
 export const updateFlower = async (
   req: AuthenticatedRequest,
@@ -97,18 +101,19 @@ export const updateFlower = async (
   try {
     const { id } = req.params;
     const sellerId = req.user?._id;
+
     if (!sellerId) {
       return res.status(401).json({ error: "Not authenticated." });
     }
 
-    // Find the flower by id
+    // Find the flower
     const flower = await Flower.findById(id);
     if (!flower) {
       return res.status(404).json({ error: "Flower not found." });
     }
 
-    // Check if the authenticated seller is the owner of the flower
-    if (flower.seller && flower.seller.toString() !== sellerId.toString()) {
+    // Check if the seller owns the flower
+    if (!flower.seller || flower.seller.toString() !== sellerId.toString()) {
       return res
         .status(403)
         .json({ error: "Not authorized to update this flower." });
@@ -129,7 +134,7 @@ export const updateFlower = async (
 };
 
 /**
- * Get all Flowers by Seller ID
+ * Get all flowers added by a seller
  */
 export const getFlowersBySellerId = async (
   req: AuthenticatedRequest,
@@ -146,7 +151,7 @@ export const getFlowersBySellerId = async (
 };
 
 /**
- * Delete a Flower by ID
+ * Delete a flower by ID (only by the seller who owns it)
  */
 export const deleteFlower = async (
   req: AuthenticatedRequest,
@@ -164,9 +169,9 @@ export const deleteFlower = async (
     const flower = await Flower.findOne({ _id: id, seller: sellerId });
 
     if (!flower) {
-      return res.status(404).json({
-        error: "Flower not found or you are not authorized to delete it.",
-      });
+      return res
+        .status(404)
+        .json({ error: "Flower not found or unauthorized." });
     }
 
     await Flower.findByIdAndDelete(id);
@@ -177,7 +182,7 @@ export const deleteFlower = async (
 };
 
 /**
- * Update a Seller by ID
+ * Update seller details
  */
 export const updateSeller = async (
   req: AuthenticatedRequest,
@@ -187,25 +192,19 @@ export const updateSeller = async (
   try {
     const sellerId = req.user?._id;
     if (!sellerId) {
-      return res.status(401).json({ error: "Not authenticated" });
+      return res.status(401).json({ error: "Not authenticated." });
     }
 
-    // Find the seller and ensure they have the 'seller' role
-    const seller = await User.findById(sellerId);
+    // Find the seller in the separate Seller collection
+    const seller = await Seller.findById(sellerId);
     if (!seller) {
       return res.status(404).json({ error: "Seller not found" });
-    }
-
-    if (seller.role !== UserRole.SELLER) {
-      return res
-        .status(403)
-        .json({ error: "Only sellers can update their details." });
     }
 
     const { username, address, image, mobile } = req.body;
 
     // Update seller details
-    const updatedSeller = await User.findByIdAndUpdate(
+    const updatedSeller = await Seller.findByIdAndUpdate(
       sellerId,
       { username, address, image, mobile },
       { new: true }
