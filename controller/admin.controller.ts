@@ -146,7 +146,7 @@ export const deleteUser = async (
  */
 export const createSeller = async (req: Request, res: Response) => {
   try {
-    const { username, email, password, mobile, address, image } = req.body;
+    const { username, email, password, mobile } = req.body;
 
     // Check if the seller already exists
     const existingSeller = await Seller.findOne({ email });
