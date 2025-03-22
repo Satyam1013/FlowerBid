@@ -9,7 +9,7 @@ export enum FlowerStatus {
 export interface IFlower {
   name: string;
   image: string;
-  size: number;
+  size: string;
   quantity: string;
   description?: string;
   category: string;

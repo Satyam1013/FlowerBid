@@ -65,16 +65,18 @@ export const initializeSocket = (io: Server) => {
               message: "Bidding time has ended. Auction closed.",
             });
           }
+          // ⚠️ Missing Check:
+          if (new Date() < flower.startTime) {
+            return socket.emit("bidError", {
+              message: "Auction has not started yet.",
+            });
+          }
 
           // Atomically update the flower's current bid price.
           // The condition ensures that only a bid strictly greater than the currentBidPrice will update.
           const updatedFlower = await Flower.findOneAndUpdate(
-            {
-              _id: data.flowerId,
-              status: FlowerStatus.LIVE,
-              currentBidPrice: { $lt: data.bidPrice },
-            },
-            { $set: { currentBidPrice: data.bidPrice } },
+            { _id: data.flowerId, status: FlowerStatus.LIVE },
+            { $max: { currentBidPrice: data.bidPrice } }, // Ensures only a higher bid updates it
             { new: true }
           );
 
@@ -94,16 +96,13 @@ export const initializeSocket = (io: Server) => {
           }
 
           // Save the bid record (bidTime and winningBid get their defaults)
-          const newBid = new Bid({
+          const savedBid = await Bid.create({
             user: userId,
             flower: data.flowerId,
             amount: data.bidPrice,
+            winningBid: true,
           });
-          const savedBid = await newBid.save();
 
-          // Because the update was atomic, this bid is now the highest.
-          // Mark it as winning and update all other bids for this flower as not winning.
-          savedBid.winningBid = true;
           await savedBid.save();
 
           await Bid.updateMany(

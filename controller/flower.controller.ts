@@ -83,21 +83,21 @@ export const getFlowersGroupedByCategory = async (
   res: Response
 ) => {
   try {
-    // Fetch all categories with their ObjectIds
-    const categories = await Category.find({}, { name: 1 });
-
-    const groupedFlowers: Record<string, FlowerDocument[] | string> = {};
-
-    await Promise.all(
-      categories.map(async (category) => {
-        const flowers = await Flower.find({ category: category._id }).limit(5);
-
-        groupedFlowers[category.name] =
-          flowers.length > 0
-            ? flowers
-            : `No flowers found for category ${category.name}.`;
-      })
-    );
+    const groupedFlowers = await Flower.aggregate([
+      {
+        $group: {
+          _id: "$category",
+          flowers: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          category: "$_id",
+          flowers: { $slice: ["$flowers", 5] },
+        },
+      },
+    ]);
 
     res.json(groupedFlowers);
   } catch (error) {

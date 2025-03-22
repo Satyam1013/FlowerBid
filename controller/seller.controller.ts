@@ -64,9 +64,9 @@ export const addFlowerBySeller = async (
       currentBidPrice: initialBidPrice,
       startTime,
       endTime,
-      seller: sellerId,
       status,
       lotNumber: newLotNumber,
+      seller: sellerId,
     });
 
     await flower.save();
