@@ -5,6 +5,7 @@ import Category from "../models/Category";
 import { UserRole } from "../types/user.types";
 import Seller from "../models/Seller";
 import bcrypt from "bcrypt";
+import { updateFlowerStatus } from "./update-flower";
 
 /**
  * Create a new Category (Admin only)
@@ -15,6 +16,8 @@ export const getAllFlowers = async (
   next: NextFunction
 ) => {
   try {
+    await updateFlowerStatus();
+
     const flowers = await Flower.find().lean();
     res.json(flowers);
   } catch (error) {
@@ -28,6 +31,8 @@ export const getFlowersBySellerId = async (
   next: NextFunction
 ) => {
   try {
+    await updateFlowerStatus();
+
     const { sellerId } = req.params;
 
     const flowers = await Flower.find({

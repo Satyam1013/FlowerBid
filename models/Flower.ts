@@ -25,9 +25,9 @@ export const flowerSchema = new Schema<FlowerDocument>({
   startTime: { type: Date, required: true },
   endTime: { type: Date, required: true },
   winningBid: { type: Schema.Types.ObjectId, ref: "Bid" },
-  seller: { type: Schema.Types.ObjectId, ref: "User" },
+  seller: { type: Schema.Types.ObjectId, ref: "Seller" },
 });
 
-const Flower = model<FlowerDocument>("flower", flowerSchema);
+const Flower = model<FlowerDocument>("Flower", flowerSchema);
 
 export default Flower;

@@ -1,9 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import Flower from "../models/Flower";
 import User from "../models/User";
-import { FilterQuery } from "mongoose";
+import { FilterQuery, Types } from "mongoose";
 import mongoose from "mongoose";
 import { FlowerStatus, IFlower } from "../types/flower.types";
+import { updateFlowerStatus } from "./update-flower";
 
 interface AuthenticatedRequest extends Request {
   user?: { _id: string };
@@ -15,61 +16,13 @@ export const getAvailableFlowers = async (
   next: NextFunction
 ) => {
   try {
-    const currentTime = new Date();
+    await updateFlowerStatus();
 
     const query: FilterQuery<IFlower> = {
       status: { $in: [FlowerStatus.LIVE, FlowerStatus.UPCOMING] },
     };
 
-    const { name, category, minPrice, maxPrice, sort } = req.query;
-
-    if (name) {
-      query.name = { $regex: new RegExp(name as string, "i") };
-    }
-
-    if (category) {
-      const categories = (category as string)
-        .split(",")
-        .map((cat) => cat.trim());
-      query.category = { $in: categories };
-    }
-
-    if (minPrice || maxPrice) {
-      query.initialBidPrice = {};
-      if (minPrice) query.initialBidPrice.$gte = Number(minPrice);
-      if (maxPrice) query.initialBidPrice.$lte = Number(maxPrice);
-    }
-
-    const sortOptions: Record<string, 1 | -1> = {};
-    if (sort) {
-      sortOptions.initialBidPrice = sort === "asc" ? 1 : -1;
-    }
-
-    // Fetch all matching flowers
-    const flowers = await Flower.find(query).sort(sortOptions);
-
-    const updatedFlowers = await Promise.all(
-      flowers.map(async (flower) => {
-        if (currentTime >= flower.endTime) {
-          // If current time is past the endTime, set status to "CLOSED"
-          flower.status = FlowerStatus.CLOSED;
-          await flower.save();
-        } else if (
-          currentTime >= flower.startTime &&
-          flower.status === FlowerStatus.UPCOMING
-        ) {
-          // If startTime is reached, update status to "LIVE"
-          flower.status = FlowerStatus.LIVE;
-          await flower.save();
-        }
-        return flower;
-      })
-    );
-
-    // Filter only available flowers (startTime <= currentTime < endTime)
-    const availableFlowers = updatedFlowers.filter(
-      (flower) => flower.status === FlowerStatus.LIVE
-    );
+    const availableFlowers = await Flower.find(query);
 
     res.json(availableFlowers);
   } catch (error) {
@@ -82,6 +35,8 @@ export const getFlowersGroupedByCategory = async (
   res: Response
 ) => {
   try {
+    await updateFlowerStatus();
+
     const groupedFlowers = await Flower.aggregate([
       {
         $group: {
@@ -107,6 +62,8 @@ export const getFlowersGroupedByCategory = async (
 
 export const getLiveFlowers = async (req: Request, res: Response) => {
   try {
+    await updateFlowerStatus();
+
     const flowers = await Flower.find({
       status: FlowerStatus.LIVE,
     });
@@ -119,8 +76,8 @@ export const getLiveFlowers = async (req: Request, res: Response) => {
 
 export const getUpcomingFlowers = async (req: Request, res: Response) => {
   try {
-    // Upcoming flowers: scheduled to start in the future.
-    // You can adjust conditions, e.g., startTime is in the future.
+    await updateFlowerStatus();
+
     const flowers = await Flower.find({
       status: FlowerStatus.UPCOMING,
     });
@@ -167,7 +124,8 @@ export const addFavoriteFlower = async (
     if (!user) {
       return res.status(404).json({ error: "User not found." });
     }
-    const flowerObjectId = new mongoose.Types.ObjectId(flowerId);
+
+    const flowerObjectId = new Types.ObjectId(flowerId);
 
     // Check if the flower is already in favorites
     if (user.favoriteFlowers.includes(flowerObjectId)) {

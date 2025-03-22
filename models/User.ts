@@ -1,9 +1,8 @@
-import { Schema, model } from "mongoose";
-import { flowerSchema } from "./Flower";
+import { Schema, Types, model } from "mongoose";
 import { BiddingStatus, UserDocument, UserRole } from "../types/user.types";
 
 const biddingStatusSchema = new Schema<BiddingStatus>({
-  flower: { type: flowerSchema, required: true },
+  flower: { type: Schema.Types.ObjectId, ref: "Flower", required: true },
   bidAmount: { type: Number, required: true },
   highestBid: { type: Boolean, required: true },
 });
@@ -21,9 +20,8 @@ const userSchema = new Schema<UserDocument>({
   favoriteFlowers: [
     { type: Schema.Types.ObjectId, ref: "Flower", default: [] },
   ],
-  flowers: [{ type: Schema.Types.ObjectId, ref: "Flower", default: [] }],
 });
 
-const User = model<UserDocument>("user", userSchema);
+const User = model<UserDocument>("User", userSchema);
 
 export default User;

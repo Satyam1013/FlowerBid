@@ -4,6 +4,7 @@ import Category from "../models/Category";
 import Seller from "../models/Seller";
 import { AuthenticatedRequest } from "../middleware/authenticator";
 import { FlowerStatus } from "../types/flower.types";
+import { updateFlowerStatus } from "./update-flower";
 
 /**
  * Add a new flower by a seller
@@ -142,6 +143,8 @@ export const getFlowersBySellerId = async (
   next: NextFunction
 ) => {
   try {
+    await updateFlowerStatus();
+
     const sellerId = req.user?._id;
     const flowers = await Flower.find({ seller: sellerId });
     res.json(flowers);

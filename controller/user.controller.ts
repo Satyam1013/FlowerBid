@@ -15,19 +15,12 @@ export const getUserProfile = async (
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findById(req.user._id).select("-password");
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    res.json({
-      username: user.username,
-      email: user.email,
-      mobile: user.mobile,
-      address: user.address,
-      image: user.image,
-      biddingStatus: user.biddingStatus,
-    });
+    res.json(user);
   } catch (error) {
     next(error);
   }

@@ -116,7 +116,7 @@ export const initializeSocket = (io: Server) => {
 
           // Prepare a bidding status entry for the users using the full flower object.
           const bidStatusEntry = {
-            flower: updatedFlower.toObject(),
+            flower: updatedFlower._id,
             bidAmount: data.bidPrice,
             highestBid: true,
           };
@@ -143,7 +143,7 @@ export const initializeSocket = (io: Server) => {
           // Update the current user's biddingStatus
           const user = await User.findById(userId);
           if (user) {
-            user.biddingStatus.push({ ...bidStatusEntry });
+            user.biddingStatus.push(bidStatusEntry);
             // Keep only the latest 10 bids
             while (user.biddingStatus.length > 10) {
               user.biddingStatus.shift();
