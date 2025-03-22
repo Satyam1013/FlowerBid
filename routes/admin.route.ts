@@ -1,6 +1,5 @@
 import { Router } from "express";
 import {
-  determineWinner,
   getUsers,
   deleteUser,
   getSellers,
@@ -9,6 +8,7 @@ import {
   deleteSeller,
   getAllFlowers,
   getCategories,
+  getFlowersBySellerId,
 } from "../controller/admin.controller";
 import { authenticator } from "../middleware/authenticator";
 import { adminOnly } from "../middleware/admin.only";
@@ -18,21 +18,20 @@ const adminRouter = Router();
 adminRouter.use(authenticator, adminOnly);
 
 // Flower management routes
-adminRouter.post("/declare-winner/:flowerId", determineWinner);
-
 adminRouter.post("/add-category", createCategory);
 
 adminRouter.get("/categories", getCategories);
 
 adminRouter.get("/flowers", getAllFlowers);
 
+adminRouter.get("/:sellerId/seller-flowers", getFlowersBySellerId);
 
 // Seller management routes
 adminRouter.post("/create-seller", createSeller);
 
 adminRouter.get("/sellers", getSellers);
 
-adminRouter.delete("/seller/:id", deleteSeller);
+adminRouter.delete("/delete-seller/:id", deleteSeller);
 
 // User management routes
 adminRouter.get("/users", getUsers);
