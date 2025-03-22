@@ -1,13 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import Flower from "../models/Flower";
-import Bid from "../models/Bid";
 import User from "../models/User";
 import Category from "../models/Category";
 import { UserRole } from "../types/user.types";
-import { FlowerStatus } from "../types/flower.types";
 import Seller from "../models/Seller";
 import bcrypt from "bcrypt";
-import { Types } from "mongoose";
 
 /**
  * Create a new Category (Admin only)
@@ -72,42 +69,6 @@ export const getCategories = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching categories:", error);
     res.status(500).json({ error: "Server error" });
-  }
-};
-
-/**
- * User CRUD Operations
- */
-export const getUsers = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const users = await User.find({ role: UserRole.USER }).lean();
-    res.json(users);
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const deleteUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const { id } = req.params;
-    const deletedUser = await User.findOneAndDelete({
-      _id: id,
-      role: UserRole.USER,
-    });
-    if (!deletedUser) {
-      return res.status(404).json({ error: "User not found." });
-    }
-    res.json({ message: "User deleted successfully." });
-  } catch (error) {
-    next(error);
   }
 };
 
@@ -184,5 +145,41 @@ export const deleteSeller = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error deleting seller:", error);
     res.status(500).json({ error: "Server error." });
+  }
+};
+
+/**
+ * User CRUD Operations
+ */
+export const getUsers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const users = await User.find({ role: UserRole.USER }).lean();
+    res.json(users);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const deletedUser = await User.findOneAndDelete({
+      _id: id,
+      role: UserRole.USER,
+    });
+    if (!deletedUser) {
+      return res.status(404).json({ error: "User not found." });
+    }
+    res.json({ message: "User deleted successfully." });
+  } catch (error) {
+    next(error);
   }
 };

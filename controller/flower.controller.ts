@@ -3,8 +3,7 @@ import Flower from "../models/Flower";
 import User from "../models/User";
 import { FilterQuery } from "mongoose";
 import mongoose from "mongoose";
-import Category from "../models/Category";
-import { FlowerDocument, FlowerStatus, IFlower } from "../types/flower.types";
+import { FlowerStatus, IFlower } from "../types/flower.types";
 
 interface AuthenticatedRequest extends Request {
   user?: { _id: string };

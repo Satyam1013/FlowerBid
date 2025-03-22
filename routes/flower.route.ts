@@ -2,7 +2,6 @@ import { Router } from "express";
 import {
   getLiveFlowers,
   getUpcomingFlowers,
-  // placeBid,
   getFavoriteFlowers,
   addFavoriteFlower,
   getFlowersGroupedByCategory,
