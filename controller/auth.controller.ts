@@ -105,46 +105,6 @@ export const userLogin = async (
   }
 };
 
-const sellerValidationSchema = yup.object({
-  username: yup.string().min(3).required(),
-  email: yup.string().email().required(),
-  password: yup.string().min(6).required(),
-  mobile: yup
-    .string()
-    .matches(/^\d{10}$/, "Mobile number must be 10 digits")
-    .required(),
-});
-
-export const sellerSignup = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const validatedData = await sellerValidationSchema.validate(req.body, {
-      abortEarly: false,
-    });
-
-    const { username, email, password, mobile } = validatedData;
-    const existingSeller = await Seller.findOne({ email });
-    if (existingSeller)
-      return res.status(400).json({ error: "Seller already exists." });
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newSeller = new Seller({
-      username,
-      email,
-      password: hashedPassword,
-      mobile,
-    });
-    await newSeller.save();
-
-    res.status(201).json({ message: "Seller created successfully." });
-  } catch (error) {
-    res.status(400).json({ errors: error });
-  }
-};
-
 export const sellerLogin = async (
   req: Request,
   res: Response,
