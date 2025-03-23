@@ -43,7 +43,9 @@ export const socketAuthenticator = (
   next: (err?: Error) => void
 ) => {
   const token = socket.handshake.auth.token;
+  console.log("Received Token:", token);
   if (!token) {
+    console.log("No token provided");
     return next(new Error("Authentication error: No token provided"));
   }
   jwt.verify(
@@ -53,6 +55,7 @@ export const socketAuthenticator = (
       if (err) {
         return next(new Error("Authentication error: Invalid token"));
       }
+      console.log("Decoded Token:", decoded);
       socket.data.user = decoded as DecodedToken;
       next();
     }

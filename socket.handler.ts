@@ -124,15 +124,12 @@ export const initializeSocket = (io: Server) => {
           // Update biddingStatus for all users who have bids on this flower,
           // setting highestBid to false for those entries.
           const usersWithBids = await User.find({
-            "biddingStatus.flower._id": data.flowerId,
+            "biddingStatus.flower": data.flowerId,
           });
+
           for (const otherUser of usersWithBids) {
             otherUser.biddingStatus = otherUser.biddingStatus.map((entry) => {
-              if (
-                entry.flower &&
-                entry.flower._id &&
-                entry.flower._id.toString() === data.flowerId
-              ) {
+              if (entry.flower && entry.flower.toString() === data.flowerId) {
                 return { ...entry, highestBid: false };
               }
               return entry;
