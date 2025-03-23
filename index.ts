@@ -32,7 +32,12 @@ const PORT = process.env.PORT || 8080;
 
 const io = new SocketIOServer(server, {
   cors: {
-    origin: "*",
+    origin: [
+      "http://stembid.com",
+      "https://stembid.com",
+      "http://localhost:8080",
+      "https://api.stembid.com:8080",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   },

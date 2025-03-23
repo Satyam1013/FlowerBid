@@ -7,7 +7,7 @@ import { FlowerStatus } from "./types/flower.types";
 
 export const initializeSocket = (io: Server) => {
   // Use the socket authentication middleware
-  // io.use(socketAuthenticator);
+  io.use(socketAuthenticator);
 
   io.on("connection", (socket) => {
     // Start Auction
@@ -157,8 +157,8 @@ export const initializeSocket = (io: Server) => {
       }
     );
 
-    socket.on("disconnect", () => {
-      console.log("User Disconnected:", socket.id);
+    socket.on("disconnect", (reason) => {
+      console.log(`Socket disconnected: ${socket.id}, Reason: ${reason}`);
     });
   });
 };
