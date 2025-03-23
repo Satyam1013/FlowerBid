@@ -7,7 +7,7 @@ import { FlowerStatus } from "./types/flower.types";
 
 export const initializeSocket = (io: Server) => {
   // Use the socket authentication middleware
-  io.use(socketAuthenticator);
+  // io.use(socketAuthenticator);
 
   io.on("connection", (socket) => {
     // Start Auction
