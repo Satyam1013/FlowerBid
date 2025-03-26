@@ -3,8 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
 
-import https from "https";
-import fs from "fs";
+import http from "http";
 
 import { connectDB } from "./database/connection";
 import { authenticator } from "./middleware/authenticator";
@@ -29,7 +28,8 @@ app.use("/api/user", authenticator, userRouter);
 app.use("/api/flowers", flowerRouter);
 
 // Create HTTPS Server
-const server = https.createServer(app);
+const server = http.createServer(app);
+
 const PORT = process.env.PORT || 8080;
 
 const socketOptions: Partial<ServerOptions> = {
