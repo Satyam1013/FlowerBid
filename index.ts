@@ -3,8 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
 
-import http from "http";
-import { Server as SocketIOServer } from "socket.io";
+import https from "https";
+import fs from "fs";
 
 import { connectDB } from "./database/connection";
 import { authenticator } from "./middleware/authenticator";
@@ -16,6 +16,7 @@ import userRouter from "./routes/user.route";
 import sellerRouter from "./routes/seller.route";
 
 import { initializeSocket } from "./socket.handler";
+import { ServerOptions, Server as SocketIOServer } from "socket.io";
 
 const app = express();
 app.use(express.json());
@@ -27,21 +28,34 @@ app.use("/api/seller", sellerRouter);
 app.use("/api/user", authenticator, userRouter);
 app.use("/api/flowers", flowerRouter);
 
-const server = http.createServer(app);
+const privateKey = fs.readFileSync(
+  "/etc/letsencrypt/live/api.stembid.com/privkey.pem",
+  "utf8"
+);
+const certificate = fs.readFileSync(
+  "/etc/letsencrypt/live/api.stembid.com/fullchain.pem",
+  "utf8"
+);
+
+const credentials = { key: privateKey, cert: certificate };
+
+// Create HTTPS Server
+const server = https.createServer(credentials, app);
 const PORT = process.env.PORT || 8080;
 
-const io = new SocketIOServer(server, {
+const socketOptions: Partial<ServerOptions> = {
   cors: {
     origin: [
-      "http://stembid.com",
       "https://stembid.com",
       "http://localhost:8080",
-      "https://api.stembid.com:8080",
+      "https://api.stembid.com",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   },
-});
+};
+
+const io = new SocketIOServer(server, socketOptions);
 
 initializeSocket(io);
 

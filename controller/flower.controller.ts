@@ -2,13 +2,9 @@ import { NextFunction, Request, Response } from "express";
 import Flower from "../models/Flower";
 import User from "../models/User";
 import { FilterQuery, Types } from "mongoose";
-import mongoose from "mongoose";
 import { FlowerStatus, IFlower } from "../types/flower.types";
 import { updateFlowerStatus } from "./update-flower";
-
-interface AuthenticatedRequest extends Request {
-  user?: { _id: string };
-}
+import { AuthenticatedRequest } from "../middleware/authenticator";
 
 export const getAvailableFlowers = async (
   req: Request,
@@ -18,11 +14,30 @@ export const getAvailableFlowers = async (
   try {
     await updateFlowerStatus();
 
+    const { category, minPrice, maxPrice, sortBy, sortOrder } = req.query;
+
+    // Construct the filter query
     const query: FilterQuery<IFlower> = {
       status: { $in: [FlowerStatus.LIVE, FlowerStatus.UPCOMING] },
     };
 
-    const availableFlowers = await Flower.find(query);
+    if (category) {
+      query.category = category as string;
+    }
+    if (minPrice || maxPrice) {
+      query.currentBidPrice = {};
+      if (minPrice) query.currentBidPrice.$gte = Number(minPrice);
+      if (maxPrice) query.currentBidPrice.$lte = Number(maxPrice);
+    }
+
+    // Sorting (using 1 for ascending and -1 for descending)
+    const sort: Record<string, 1 | -1> = {};
+    if (sortBy) {
+      sort[sortBy as string] = sortOrder === "desc" ? -1 : 1;
+    }
+
+    // Fetch flowers with filters and sorting
+    const availableFlowers = await Flower.find(query).sort(sort);
 
     res.json(availableFlowers);
   } catch (error) {
