@@ -46,6 +46,7 @@ const PORT = process.env.PORT || 8080;
 const socketOptions: Partial<ServerOptions> = {
   cors: {
     origin: [
+      "http://stembid.com",
       "https://stembid.com",
       "http://localhost:8080",
       "https://api.stembid.com",
