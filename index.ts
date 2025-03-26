@@ -28,29 +28,13 @@ app.use("/api/seller", sellerRouter);
 app.use("/api/user", authenticator, userRouter);
 app.use("/api/flowers", flowerRouter);
 
-const privateKey = fs.readFileSync(
-  "/etc/letsencrypt/live/api.stembid.com/privkey.pem",
-  "utf8"
-);
-const certificate = fs.readFileSync(
-  "/etc/letsencrypt/live/api.stembid.com/fullchain.pem",
-  "utf8"
-);
-
-const credentials = { key: privateKey, cert: certificate };
-
 // Create HTTPS Server
-const server = https.createServer(credentials, app);
+const server = https.createServer(app);
 const PORT = process.env.PORT || 8080;
 
 const socketOptions: Partial<ServerOptions> = {
   cors: {
-    origin: [
-      "http://stembid.com",
-      "https://stembid.com",
-      "http://localhost:8080",
-      "https://api.stembid.com",
-    ],
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   },
