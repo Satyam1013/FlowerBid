@@ -16,6 +16,7 @@ import sellerRouter from "./routes/seller.route";
 
 import { initializeSocket } from "./socket.handler";
 import { ServerOptions, Server as SocketIOServer } from "socket.io";
+import paymentRouter from "./routes/payment.route";
 
 const app = express();
 app.use(express.json());
@@ -26,6 +27,7 @@ app.use("/api/admin", adminRouter);
 app.use("/api/seller", sellerRouter);
 app.use("/api/user", authenticator, userRouter);
 app.use("/api/flowers", flowerRouter);
+app.use("/api/payments", paymentRouter);
 
 // Create HTTPS Server
 const server = http.createServer(app);

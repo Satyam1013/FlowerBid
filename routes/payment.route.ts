@@ -1,11 +1,10 @@
-// src/routes/payment.route.ts
 import { Router } from "express";
-import { addFundsViaUPI } from "../controller/payment.controller";
+import { createUPIOrder, verifyUPIPayment } from "../controller/payment.controller";
 import { authenticator } from "../middleware/authenticator";
 
-const router: Router = Router();
+const paymentRouter: Router = Router();
 
-// POST /api/payment/addFunds - Allows a user to add funds via UPI.
-router.post("/addFunds", authenticator, addFundsViaUPI);
+paymentRouter.post("/upi/create-order", authenticator, createUPIOrder);
+paymentRouter.post("/upi/verify-payment", authenticator, verifyUPIPayment);
 
-export default router;
+export default paymentRouter;

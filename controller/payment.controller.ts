@@ -1,59 +1,97 @@
-// src/controllers/payment.controller.ts
 import { Request, Response } from "express";
+import Razorpay from "razorpay";
+import crypto from "crypto";
 import User from "../models/User";
+import { AuthenticatedRequest } from "../middleware/authenticator";
 
-interface AuthenticatedRequest extends Request {
-  user?: { _id: string };
-}
+// Initialize Razorpay instance
+const razorpay = new Razorpay({
+  key_id: "rzp_test_1FmiKa36oyTEwp", // Your Razorpay Test Key
+  key_secret: "jM9oNOFvU0tWz0d1KOkP8RJs", // Your Razorpay Secret Key
+});
 
-/**
- * Simulate a UPI payment process and add funds to the user's balance.
- *
- * Expects a JSON body with:
- *  - upiId: string (the user's UPI ID)
- *  - amount: number (the amount to add)
- */
-export const addFundsViaUPI = async (
+// Step 1: Create Order
+export const createUPIOrder = async (
   req: AuthenticatedRequest,
   res: Response
-): Promise<void> => {
+) => {
   try {
-    // Ensure the user is authenticated
-    const userId = req.user?._id;
-    if (!userId) {
-      res.status(401).json({ error: "Not authenticated" });
-      return;
+    const { amount, upiId } = req.body;
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: "Invalid amount" });
     }
 
-    // Extract payment details from the request body
-    const { upiId, amount } = req.body;
+    const options = {
+      amount: amount * 100, // Razorpay works in paise (₹1 = 100 paise)
+      currency: "INR",
+      receipt: `receipt_${Date.now()}`,
+      payment_capture: 1, // Auto capture payment
+    };
 
-    // Validate the incoming data
-    if (!upiId || typeof upiId !== "string" || !amount || amount <= 0) {
-      res.status(400).json({ error: "Invalid payment details" });
-      return;
+    const order = await razorpay.orders.create(options);
+
+    res.json({
+      success: true,
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      upiId,
+      key_id: "rzp_test_1FmiKa36oyTEwp", // Send Key ID to frontend
+    });
+  } catch (error) {
+    console.error("Error creating UPI order:", error);
+    res.status(500).json({ error: "Error creating payment order" });
+  }
+};
+
+// Step 2: Verify Payment
+export const verifyUPIPayment = async (
+  req: AuthenticatedRequest,
+  res: Response
+) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+      req.body;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ error: "Payment verification failed" });
     }
 
-    // In a real integration, you would call your UPI payment gateway API here.
-    // For simulation purposes, we'll assume the payment is always successful.
-    console.log(`Processing UPI payment. UPI ID: ${upiId}, Amount: ${amount}`);
+    // Validate Signature
+    const generatedSignature = crypto
+      .createHmac("sha256", "jM9oNOFvU0tWz0d1KOkP8RJs")
+      .update(razorpay_order_id + "|" + razorpay_payment_id)
+      .digest("hex");
 
-    // Retrieve the user from the database and update the balance
-    const user = await User.findById(userId);
+    if (generatedSignature !== razorpay_signature) {
+      return res
+        .status(400)
+        .json({ error: "Invalid signature, payment not verified" });
+    }
+
+    // Retrieve order details from Razorpay
+    const order = await razorpay.orders.fetch(razorpay_order_id);
+    if (!order || order.status !== "paid") {
+      return res.status(400).json({ error: "Order not found or not paid" });
+    }
+
+    // Update User Balance
+    const user = await User.findById(req.user?._id);
     if (!user) {
-      res.status(404).json({ error: "User not found" });
-      return;
+      return res.status(404).json({ error: "User not found" });
     }
 
-    user.balance = (user.balance || 0) + amount;
+    const amountInINR = Number(order.amount) / 100; // Convert paise to INR
+    user.balance = (user.balance || 0) + amountInINR;
     await user.save();
 
     res.json({
-      message: "Payment successful. Funds added.",
+      success: true,
+      message: "Payment successful!",
       balance: user.balance,
     });
   } catch (error) {
-    console.error("Error processing payment:", error);
-    res.status(500).json({ error: "Payment processing error" });
+    console.error("Error verifying UPI payment:", error);
+    res.status(500).json({ error: "Payment verification error" });
   }
 };
