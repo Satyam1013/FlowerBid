@@ -160,6 +160,51 @@ export const initializeSocket = (io: Server) => {
       }
     );
 
+    socket.on("endAuction", async (flowerId: string) => {
+      try {
+        const flower = await Flower.findById(flowerId);
+        if (!flower || flower.status !== FlowerStatus.LIVE) {
+          return socket.emit("auctionError", {
+            message: "Auction not found or already closed",
+          });
+        }
+
+        flower.status = FlowerStatus.CLOSED;
+        await flower.save();
+
+        const winningBid = await Bid.findOne({
+          flower: flowerId,
+          winningBid: true,
+        }).populate("user");
+
+        if (winningBid && winningBid.user) {
+          const winner = await User.findById(winningBid.user._id);
+          if (winner) {
+            if (winner.balance < winningBid.amount) {
+              return socket.emit("auctionError", {
+                message: "Winner has insufficient balance!",
+              });
+            }
+
+            // Deduct balance from winner
+            winner.balance -= winningBid.amount;
+            await winner.save();
+
+            // Notify all clients about the auction result
+            io.emit("auctionWinner", {
+              userId: winner._id,
+              flowerId,
+              winningBid: winningBid.amount,
+              balance: winner.balance,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error finalizing auction:", error);
+        socket.emit("auctionError", { message: "Failed to finalize auction" });
+      }
+    });
+
     socket.on("disconnect", (reason) => {
       console.log(`Socket disconnected: ${socket.id}, Reason: ${reason}`);
     });
