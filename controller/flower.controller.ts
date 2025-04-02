@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import Flower from "../models/Flower";
 import User from "../models/User";
-import { FilterQuery, Types } from "mongoose";
+import mongoose, { FilterQuery, Types } from "mongoose";
 import { FlowerStatus, IFlower } from "../types/flower.types";
 import { updateFlowerStatus } from "./update-flower";
 import { AuthenticatedRequest } from "../middleware/authenticator";

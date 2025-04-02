@@ -86,8 +86,11 @@ export const initializeSocket = (io: Server) => {
             return socket.emit("bidError", { message: "User not found" });
           }
 
-          // ❌ Check if the user's balance is less than the bid amount
-          if (user.balance < data.bidPrice) {
+          // ❌ Check if the user's balance is less than the bid amount or 10% of bid price is more than balance
+          if (
+            user.balance < data.bidPrice ||
+            data.bidPrice * 0.1 > user.balance
+          ) {
             return socket.emit("bidError", {
               message: "Insufficient balance to place this bid",
             });

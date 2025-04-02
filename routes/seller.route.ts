@@ -9,13 +9,14 @@ import {
   updateFlower,
   updateSeller,
 } from "../controller/seller.controller";
+import upload from "../utils/gridfs";
 
 const sellerRouter = Router();
 
 sellerRouter.use(authenticator, sellerOnly);
 
 // Flower management routes
-sellerRouter.post("/add-flowers", addFlowerBySeller);
+sellerRouter.post("/add-flowers", upload.single("image"), addFlowerBySeller);
 
 sellerRouter.get("/categories", getCategories);
 

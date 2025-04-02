@@ -17,11 +17,13 @@ import sellerRouter from "./routes/seller.route";
 import { initializeSocket } from "./socket.handler";
 import { ServerOptions, Server as SocketIOServer } from "socket.io";
 import paymentRouter from "./routes/payment.route";
+import path from "path";
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/seller", sellerRouter);

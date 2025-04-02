@@ -9,6 +9,7 @@ import { updateFlowerStatus } from "./update-flower";
 /**
  * Add a new flower by a seller
  */
+
 export const addFlowerBySeller = async (
   req: AuthenticatedRequest,
   res: Response
@@ -16,14 +17,11 @@ export const addFlowerBySeller = async (
   try {
     const sellerId = req.user?._id;
     const seller = await Seller.findById(sellerId);
-
-    if (!seller) {
+    if (!seller)
       return res.status(403).json({ error: "Only sellers can add flowers." });
-    }
 
     let {
       name,
-      image,
       size,
       description,
       quantity,
@@ -33,7 +31,15 @@ export const addFlowerBySeller = async (
       endTime,
     } = req.body;
 
-    // Find category by name
+    // Ensure an image is uploaded
+    if (!req.file) return res.status(400).json({ error: "Image is required." });
+
+    // Store the image path instead of GridFS ID
+    const imageUrl = `${req.protocol}://${req.get("host")}/uploads/${
+      req.file?.filename
+    }`;
+
+    // Validate category
     const existingCategory = await Category.findOne({ name: category });
     if (!existingCategory) {
       return res.status(400).json({ error: "Invalid category name." });
@@ -50,13 +56,13 @@ export const addFlowerBySeller = async (
       status = FlowerStatus.CLOSED;
     }
 
-    // Generate lotNumber automatically
+    // Generate lot number
     const lastFlower = await Flower.findOne().sort({ lotNumber: -1 });
     const newLotNumber = lastFlower ? lastFlower.lotNumber + 1 : 1;
 
     const flower = new Flower({
       name,
-      image,
+      image: imageUrl, // Store image path
       size,
       quantity,
       description,
