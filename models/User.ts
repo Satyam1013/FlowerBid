@@ -1,4 +1,4 @@
-import { Schema, Types, model } from "mongoose";
+import { Schema, model } from "mongoose";
 import { BiddingStatus, UserDocument, UserRole } from "../types/user.types";
 
 const biddingStatusSchema = new Schema<BiddingStatus>({

@@ -6,7 +6,6 @@ import User from "../models/User";
 import Seller from "../models/Seller";
 import Admin from "../models/Admin";
 import { UserRole } from "../types/user.types";
-import { BADFLAGS } from "dns";
 
 const userValidationSchema = yup.object({
   username: yup

@@ -62,7 +62,7 @@ export const addFlowerBySeller = async (
 
     const flower = new Flower({
       name,
-      image: imageUrl, // Store image path
+      image: imageUrl,
       size,
       quantity,
       description,

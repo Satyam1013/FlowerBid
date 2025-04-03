@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import User from "../models/User";
-import Flower from "../models/Flower";
 import { AuthenticatedRequest } from "../middleware/authenticator";
 
 export const getUserProfile = async (
